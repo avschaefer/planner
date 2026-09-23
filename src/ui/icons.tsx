@@ -71,3 +71,27 @@ export const Keyboard = () => (
     <path d="M4.5 7h.01M7 7h.01M9.5 7h.01M11.5 7h.01M5 9.4h6" />
   </svg>
 );
+
+/* Sliders rather than a cog — a cog at 16px reads as a sunburst. */
+export const Gear = () => (
+  <svg {...base}>
+    <path d="M2.5 4.5h4M9.5 4.5h4M2.5 11.5h1.5M7 11.5h6.5" />
+    <circle cx="8" cy="4.5" r="1.8" />
+    <circle cx="5.5" cy="11.5" r="1.8" />
+  </svg>
+);
+
+export const Image = () => (
+  <svg {...base}>
+    <rect x="1.8" y="3.2" width="12.4" height="9.6" rx="1.5" />
+    <path d="M2.4 10.6L5.6 7.6l2.6 2.4 2-1.8 3.2 3" />
+    <circle cx="5.7" cy="6" r="0.9" />
+  </svg>
+);
+
+export const PanelLeft = () => (
+  <svg {...base}>
+    <rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.5" />
+    <path d="M6.3 2.8v10.4" />
+  </svg>
+);

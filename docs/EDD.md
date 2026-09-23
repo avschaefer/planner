@@ -1,6 +1,6 @@
 # EDD — Planner
 
-**Status:** v2 interaction pass · **Last updated:** 2026-09-22
+**Status:** v3 presentation pass · **Last updated:** 2026-09-23
 
 ---
 
@@ -233,6 +233,9 @@ the table (`ui/reorder.ts`), because its target is an outline position, not a da
 | D-020 | Light theme only; no `prefers-color-scheme` block | Dual light/dark palettes | Two palettes double the cost of every colour decision — six group hues, critical red, float tails, weekend bands — for a tool used in one room. Decided with the user, 2026-09-22 |
 | D-021 | Outline drag-and-drop takes its depth from the pointer's x, bounded by the neighbouring rows | Drop-on-row-to-nest; indent only via Alt+arrow | Dragging sideways to choose the level is what every outliner does, and it makes "into and out of a summary" one gesture instead of two. Bounding the depth by the row above (+1) and the row below stops the drop landing somewhere the outline cannot represent |
 | D-022a | A modified click (Shift / Cmd / Ctrl) in the table is always a selection, never a cell edit | Letting the editor open and the selection change together | Every cell in a dense table opens an editor on click, so the two gestures collide. Selection wins under a modifier because that is the only thing a modified click means anywhere else. Plain clicks keep spreadsheet behaviour: press, drag across rows to sweep a range, or release in place to edit |
+| D-023 | Presentation settings live in `localStorage`, outside the document and outside undo | Storing them on the `ProjectDoc` | How a chart is drawn is a property of the person reading it, not of the schedule. Keeping them out of the document means changing a colour is not an undoable edit, does not dirty the save, and does not have to survive JSON round-trips. The cost: the formatting does not travel with an exported project |
+| D-024 | PNG export clones the live SVG and inlines the stylesheet | Re-rendering the chart to a canvas; a server-side renderer | The chart is already SVG and already styled by class, so a clone plus the page's own CSS rules is the whole job, and what exports is by construction what is on screen. A second canvas renderer would be a second implementation of the chart to keep in sync. `:root` custom properties survive because in a standalone SVG the `<svg>` element is the root |
+| D-025 | SVG text labels are measured with a 2D canvas context and given a backing plate | A stroke halo (`paint-order`) | A stroke halo only covers where there is ink, so a dependency line crossing a label shows through the spaces between words and reads as a row of stray dots. A measured rectangle covers the whole label. The measurement is cached; the same names redraw on every frame of a drag |
 | D-022 | Popovers that open from the task table are portalled to `document.body` | Rendering them in place | The table body is translated to follow the Gantt's scroll, and a CSS transform makes `position: fixed` resolve against the transformed element instead of the viewport. The portal is the fix; the alternative is re-deriving offsets on every scroll |
 
 ## 7. Traceability
@@ -242,6 +245,8 @@ the table (`ui/reorder.ts`), because its target is an outline position, not a da
 | R-001 | §5 `ProjectList`, §3 `ProjectDoc` |
 | R-002 | §3 `Task`, `engine/ids.ts`, D-018 |
 | R-002a | `engine/ids.ts`, D-018 |
+| R-057 | `ui/settings.ts`, `ui/Settings.tsx`, D-023 |
+| R-058 | `ui/exportPng.ts`, D-024 |
 | R-003 | §3 `Task.parentId/order/collapsed`, §4.4, D-006 |
 | R-004 | §3 `Task.type`, §5 `GanttCanvas` |
 | R-005 | §3.1, D-003, D-014 |

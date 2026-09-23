@@ -273,6 +273,87 @@ test('milestones render as a diamond and survive a reload', async ({ page }) => 
   await expect(page.locator('.trow')).toHaveCount(2);
 });
 
+async function openSettings(page: Page) {
+  await page.locator('.toolbar button[title="Settings"]').click();
+  await expect(page.locator('.modal')).toBeVisible();
+}
+
+/** A labelled group inside the settings modal. */
+function section(page: Page, name: string) {
+  return page.locator('.modal section').filter({ has: page.locator('h4', { hasText: name }) });
+}
+
+test('settings change how bars and milestones are drawn, and survive a reload', async ({ page }) => {
+  await newSchedule(page, ['A', 'Gate']);
+  await pickRow(page, 1);
+  await page.keyboard.press('m');
+  await expect(page.locator('.bar-label')).toHaveCount(2);
+
+  await openSettings(page);
+  await section(page, 'Activity bars').locator('.seg button', { hasText: 'None' }).click();
+  await section(page, 'Milestones').locator('.seg button', { hasText: 'Circle' }).click();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.modal')).toHaveCount(0);
+
+  // The task bar's name is gone; the milestone keeps its own label.
+  await expect(page.locator('.bar-label')).toHaveCount(1);
+  // A circle is drawn with arcs; a diamond is not.
+  await expect(page.locator('.ms')).toHaveAttribute('d', /a/);
+
+  // Autosave is debounced; give it a beat before pulling the rug.
+  await page.waitForTimeout(500);
+  await page.reload();
+  await page.locator('.pitem').first().click();
+  await expect(page.locator('.bar-label')).toHaveCount(1);
+  await expect(page.locator('.ms')).toHaveAttribute('d', /a/);
+});
+
+test('the date format applies to the table and the milestone label', async ({ page }) => {
+  await newSchedule(page, ['A']);
+  await openSettings(page);
+  await section(page, 'Chart').locator('.seg button', { hasText: '2026-03-12' }).click();
+  await page.keyboard.press('Escape');
+
+  await expect(startCell(page, 0)).toHaveText(/^\d{4}-\d{2}-\d{2}$/);
+});
+
+test('the activity table can be hidden to give the chart the window', async ({ page }) => {
+  await newSchedule(page, ['A']);
+  await expect(page.locator('.pane-left')).toBeVisible();
+
+  await page.locator('.toolbar button[title="Hide the activity table"]').click();
+  await expect(page.locator('.pane-left')).toHaveCount(0);
+  await expect(page.locator('.splitter')).toHaveCount(0);
+
+  await page.locator('.toolbar button[title="Show the activity table"]').click();
+  await expect(page.locator('.pane-left')).toBeVisible();
+});
+
+test('clicking away from a row clears the highlight', async ({ page }) => {
+  await newSchedule(page, ['A', 'B']);
+  await pickRow(page, 0);
+  await expect(page.locator('.trow.sel')).toHaveCount(1);
+
+  // Empty chart below the last row.
+  const chart = (await page.locator('svg.gantt').last().boundingBox())!;
+  await page.mouse.click(chart.x + 200, chart.y + chart.height - 20);
+  await expect(page.locator('.trow.sel')).toHaveCount(0);
+
+  await pickRow(page, 0);
+  await expect(page.locator('.trow.sel')).toHaveCount(1);
+  await page.locator('.pane-left .head').click();
+  await expect(page.locator('.trow.sel')).toHaveCount(0);
+});
+
+test('the chart exports as a PNG', async ({ page }) => {
+  await newSchedule(page, ['A', 'B']);
+  const download = page.waitForEvent('download');
+  await page.locator('.toolbar button[title="Export the chart as a PNG"]').click();
+  const file = await download;
+  expect(file.suggestedFilename()).toBe('Smoke test.png');
+  expect(await file.path()).toBeTruthy();
+});
+
 test('critical path filter dims the slack', async ({ page }) => {
   await newSchedule(page, ['A', 'B']);
   await setDuration(page, 0, 8);

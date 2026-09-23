@@ -67,6 +67,7 @@ export function TaskTable({ rows, hues, schedule, editing, setEditing, onAdd }: 
   const selection = useStore((s) => s.selection);
   const store = useStore();
 
+  const fmt = useStore((s) => s.settings.dateFormat);
   const ids = useMemo(() => rowIds(doc.tasks), [doc.tasks]);
   const byRow = useMemo(() => tasksByRowId(doc.tasks), [doc.tasks]);
 
@@ -300,7 +301,9 @@ export function TaskTable({ rows, hues, schedule, editing, setEditing, onAdd }: 
                 editable={!isSummary}
                 editing={editing?.taskId === task.id && editing.field === field}
                 pinned={field === 'start' && !!task.constraint && !isSummary}
-                display={s ? formatWorkDay(field === 'start' ? s.start : Math.max(s.start, s.end - 1)) : ''}
+                display={
+                  s ? formatWorkDay(field === 'start' ? s.start : Math.max(s.start, s.end - 1), fmt) : ''
+                }
                 valueIso={valueFor(task.id, field)}
                 hasConstraint={!!task.constraint}
                 onOpen={() => setEditing({ taskId: task.id, field })}

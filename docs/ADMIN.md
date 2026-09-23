@@ -1,6 +1,6 @@
 # ADMIN — Planner
 
-**Last updated:** 2026-09-22
+**Last updated:** 2026-09-23
 
 ---
 
@@ -45,8 +45,9 @@ src/
                  calendar.test.ts  schedule.test.ts  predecessors.test.ts
   store/         store.ts (document, undo stack, transient UI state)  store.test.ts
   persist/       repo.ts (ScheduleRepo interface)  idbRepo.ts
-  ui/            ScheduleView  TaskTable  Gantt  DateField  LinkPopover  ProjectList
-                 colors.ts  icons.tsx  linkPath.ts  reorder.ts  rows.ts  timeline.ts
+  ui/            ScheduleView  TaskTable  Gantt  DateField  LinkPopover  Settings  ProjectList
+                 colors.ts  exportPng.ts  icons.tsx  linkPath.ts  measure.ts  reorder.ts
+                 rows.ts  settings.ts  timeline.ts
   styles.css     design tokens + all styling (light theme only)
 ```
 
@@ -69,6 +70,8 @@ render. Neither builds its own.
 | Bar drag, resize, link drag, rubber-band select | `src/ui/Gantt.tsx` (the `Drag` state machine) |
 | Row drag-and-drop, drop depth | `src/ui/reorder.ts` (`dropPlan`) + `src/ui/TaskTable.tsx` |
 | Summary group hue assignment | `src/ui/colors.ts` |
+| Palettes, bar/milestone formatting, persistence | `src/ui/settings.ts` |
+| PNG export of the chart | `src/ui/exportPng.ts` |
 | Timeline ticks, zoom scales | `src/ui/timeline.ts` |
 | Dependency arrow routing | `src/ui/linkPath.ts` |
 | Colours, spacing, row height | `src/styles.css` (`:root`) |

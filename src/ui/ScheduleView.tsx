@@ -2,8 +2,10 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { formatWorkDay } from '../engine/calendar';
 import { primaryTaskId, useStore, ZOOM_STEPS } from '../store/store';
 import { groupHues } from './colors';
+import { exportGanttPng } from './exportPng';
 import { Gantt } from './Gantt';
 import * as Icon from './icons';
+import { SettingsModal } from './Settings';
 import { HEAD_H, ROW_H, visibleRows } from './rows';
 import { TaskTable, TaskTableHead, type Editing } from './TaskTable';
 import { majorTicks, minorTicks, buildTimeline, todayX } from './timeline';
@@ -17,11 +19,13 @@ export function ScheduleView() {
   const pxPerDay = useStore((s) => s.pxPerDay);
   const criticalOnly = useStore((s) => s.criticalOnly);
   const selection = useStore((s) => s.selection);
+  const settings = useStore((s) => s.settings);
   const store = useStore();
 
   const [leftWidth, setLeftWidth] = useState(660);
   const [editing, setEditing] = useState<Editing | null>(null);
   const [showKeys, setShowKeys] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(900);
 
   const ganttRef = useRef<HTMLDivElement>(null);
@@ -179,6 +183,20 @@ export function ScheduleView() {
   const finish = schedule.projectEnd > schedule.projectStart ? schedule.projectEnd - 1 : schedule.projectStart;
   const canIndent = selection.taskIds.length > 0;
 
+  /** A clean snapshot: nothing selected, and the whole timeline, not the viewport. */
+  async function exportPng() {
+    const head = headInnerRef.current?.querySelector('svg') as SVGSVGElement | null;
+    const chart = ganttRef.current?.querySelector('svg.gantt') as SVGSVGElement | null;
+    if (!head || !chart) return;
+    store.clearSelection();
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    try {
+      await exportGanttPng(head, chart, doc.name);
+    } catch {
+      store.notify('The chart could not be saved as an image.');
+    }
+  }
+
   function exportJson() {
     const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
@@ -240,14 +258,34 @@ export function ScheduleView() {
         </div>
 
         <span className="spacer" />
-        <span className="meta">
-          {selection.taskIds.length > 1 && <>{selection.taskIds.length} selected · </>}
-          Finish <b>{formatWorkDay(finish)}</b>
+        {selection.taskIds.length > 1 && (
+          <span className="meta">{selection.taskIds.length} selected</span>
+        )}
+        <span className="finish" title="Project finish">
+          <span className="k">Finish</span>
+          <b>{formatWorkDay(finish, settings.dateFormat)}</b>
         </span>
 
         <div className="cluster">
+          <button
+            className={settings.showTable ? '' : 'on'}
+            onClick={() => store.updateSettings({ showTable: !settings.showTable })}
+            title={settings.showTable ? 'Hide the activity table' : 'Show the activity table'}
+          >
+            <Icon.PanelLeft />
+          </button>
+          <button onClick={() => void exportPng()} title="Export the chart as a PNG">
+            <Icon.Image />
+          </button>
           <button onClick={exportJson} title="Export JSON">
             <Icon.Export />
+          </button>
+          <button
+            className={showSettings ? 'on' : ''}
+            onClick={() => setShowSettings((v) => !v)}
+            title="Settings"
+          >
+            <Icon.Gear />
           </button>
           <button onClick={() => setShowKeys((v) => !v)} title="Keyboard shortcuts (?)">
             <Icon.Keyboard />
@@ -256,39 +294,50 @@ export function ScheduleView() {
       </div>
 
       <div className="schedule">
-        <div className="pane-left" style={{ width: leftWidth }}>
-          <div className="head">
-            <TaskTableHead />
-          </div>
-          <div className="body-viewport">
-            <div ref={tableInnerRef}>
-              <TaskTable
-                rows={rows}
-                hues={hues}
-                schedule={schedule}
-                editing={editing}
-                setEditing={setEditing}
-                onAdd={addTask}
-              />
+        {settings.showTable && (
+          <div className="pane-left" style={{ width: leftWidth }}>
+            <div className="head" onPointerDown={() => store.clearSelection()}>
+              <TaskTableHead />
+            </div>
+            <div
+              className="body-viewport"
+              onPointerDown={(e) => e.target === e.currentTarget && store.clearSelection()}
+            >
+              <div ref={tableInnerRef}>
+                <TaskTable
+                  rows={rows}
+                  hues={hues}
+                  schedule={schedule}
+                  editing={editing}
+                  setEditing={setEditing}
+                  onAdd={addTask}
+                />
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        <div
-          className={`splitter${dragging ? ' active' : ''}`}
-          onPointerDown={(e) => {
-            e.preventDefault();
-            setDragging(true);
-          }}
-        />
+        {settings.showTable && (
+          <div
+            className={`splitter${dragging ? ' active' : ''}`}
+            onPointerDown={(e) => {
+              e.preventDefault();
+              setDragging(true);
+            }}
+          />
+        )}
 
         <div className="pane-right">
-          <div className="head">
+          <div className="head" onPointerDown={() => store.clearSelection()}>
             <div ref={headInnerRef} style={{ width: tl.width }}>
               <TimelineHead tl={tl} />
             </div>
           </div>
-          <div className="gantt-viewport" ref={ganttRef}>
+          <div
+            className="gantt-viewport"
+            ref={ganttRef}
+            onPointerDown={(e) => e.target === e.currentTarget && store.clearSelection()}
+          >
             <Gantt
               rows={rows}
               hues={hues}
@@ -302,6 +351,7 @@ export function ScheduleView() {
       </div>
 
       {showKeys && <Shortcuts onClose={() => setShowKeys(false)} />}
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </>
   );
 }

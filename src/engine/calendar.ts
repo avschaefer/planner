@@ -53,11 +53,37 @@ export function todayIso(): Iso {
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-/** '12 Mar 26' — compact enough for a dense table. */
-export function formatWorkDay(n: WorkDay): string {
+/** How dates are written everywhere they are shown. Chosen in Settings. */
+export type DateFormat = 'dMMMyy' | 'dMMMyyyy' | 'iso' | 'mdy' | 'dmy' | 'MMMd';
+
+export const DATE_FORMATS: Array<{ id: DateFormat; label: string }> = [
+  { id: 'dMMMyy', label: '12 Mar 26' },
+  { id: 'dMMMyyyy', label: '12 Mar 2026' },
+  { id: 'iso', label: '2026-03-12' },
+  { id: 'mdy', label: '03/12/2026' },
+  { id: 'dmy', label: '12/03/2026' },
+  { id: 'MMMd', label: 'Mar 12' },
+];
+
+/** '12 Mar 26' by default — compact enough for a dense table. */
+export function formatWorkDay(n: WorkDay, fmt: DateFormat = 'dMMMyy'): string {
   const iso = toIso(n);
   const [y, m, d] = iso.split('-');
-  return `${Number(d)} ${MONTHS[Number(m) - 1]} ${y.slice(2)}`;
+  const mon = MONTHS[Number(m) - 1];
+  switch (fmt) {
+    case 'dMMMyyyy':
+      return `${Number(d)} ${mon} ${y}`;
+    case 'iso':
+      return iso;
+    case 'mdy':
+      return `${m}/${d}/${y}`;
+    case 'dmy':
+      return `${d}/${m}/${y}`;
+    case 'MMMd':
+      return `${mon} ${Number(d)}`;
+    default:
+      return `${Number(d)} ${mon} ${y.slice(2)}`;
+  }
 }
 
 export function monthLabel(iso: Iso): string {

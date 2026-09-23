@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { calIndexFromWorkDay, formatWorkDay, workDayFromCalIndex } from '../engine/calendar';
+import {
+  calIndexFromWorkDay,
+  formatWorkDay,
+  workDayFromCalIndex,
+  type DateFormat,
+} from '../engine/calendar';
 import type { Link, LinkType, ScheduleResult, Task, WorkDay } from '../engine/types';
 import { useStore } from '../store/store';
 import { hueClass } from './colors';
+import { textWidth } from './measure';
+import type { Settings, TextPos } from './settings';
 import { LinkPopover } from './LinkPopover';
 import { anchorsFor, arrowPoints, routeLink, type Anchor } from './linkPath';
 import { BAR_H, BAR_Y, ROW_H, type Row } from './rows';
@@ -39,6 +46,7 @@ interface Props {
 
 export function Gantt({ rows, hues, schedule, links, timeline: tl, criticalOnly }: Props) {
   const selection = useStore((s) => s.selection);
+  const settings = useStore((s) => s.settings);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [hover, setHover] = useState<string | null>(null);
   const [tip, setTip] = useState<{ id: string; x: number; y: number } | null>(null);
@@ -248,6 +256,20 @@ export function Gantt({ rows, hues, schedule, links, timeline: tl, criticalOnly 
   return (
     <>
       <svg ref={svgRef} className="gantt" width={tl.width} height={height}>
+        {/* Catches everything past the last row, so clicking empty space
+            clears the selection and a rubber band can start out there. */}
+        <rect
+          x={0}
+          y={0}
+          width={tl.width}
+          height={height}
+          fill="transparent"
+          onPointerDown={(e) => {
+            const pt = local(e);
+            begin({ kind: 'marquee', x0: pt.x, y0: pt.y, x: pt.x, y: pt.y, additive: false });
+          }}
+        />
+
         <g className="grid">
           {weekendBands(tl).map((b, i) => (
             <rect key={i} className="g-weekend" x={b.x} y={0} width={b.w} height={height} />
@@ -359,6 +381,7 @@ export function Gantt({ rows, hues, schedule, links, timeline: tl, criticalOnly 
                 dropEnd={linkDrag?.target?.id === row.task.id ? linkDrag.target.end : null}
                 preview={previewOf(row.task)}
                 tl={tl}
+                settings={settings}
                 onDown={(e) => onBarDown(row, e)}
                 onResize={(edge, e) => {
                   e.stopPropagation();
@@ -401,7 +424,9 @@ export function Gantt({ rows, hues, schedule, links, timeline: tl, criticalOnly 
         )}
       </svg>
 
-      {tip && !drag && <BarTip tip={tip} schedule={schedule} rows={rows} links={links} />}
+      {tip && !drag && (
+        <BarTip tip={tip} schedule={schedule} rows={rows} links={links} fmt={settings.dateFormat} />
+      )}
       {selection.linkId && linkAt && <LinkPopover at={linkAt} />}
     </>
   );
@@ -424,6 +449,7 @@ interface BarProps {
   dropEnd: End | null;
   preview: { start: WorkDay; end: WorkDay } | null;
   tl: Timeline;
+  settings: Settings;
   onDown(e: React.PointerEvent): void;
   onResize(edge: End, e: React.PointerEvent): void;
   onLink(end: End, e: React.PointerEvent): void;
@@ -434,7 +460,7 @@ interface BarProps {
 
 function Bar(p: BarProps) {
   const task = p.row.task;
-  const { tl } = p;
+  const { tl, settings: st } = p;
   const x = tl.x(p.start);
   const w = Math.max(tl.x(p.end) - x, 2);
   const isMilestone = task.type === 'milestone';
@@ -443,7 +469,13 @@ function Bar(p: BarProps) {
     `${p.critical ? ' critical' : p.hue}${p.selected ? ' sel' : ''}${p.dim ? ' dim' : ''}`;
   const mid = p.y + ROW_H / 2;
   const showKnobs = p.active && !p.dim && !isSummary && !p.dragging;
-  const tailEnd = !p.critical && p.totalFloat > 0 && !isSummary ? tl.x(p.end + p.totalFloat) : x + w;
+  const tail =
+    st.floatTails && !p.critical && p.totalFloat > 0 && !isSummary ? tl.x(p.end + p.totalFloat) : null;
+
+  const label = labelFor(task, p.start, st);
+  const place = isMilestone
+    ? milestonePlacement(x, label, st)
+    : labelPlacement(x, w, tail, label, isSummary ? st.summaryText : st.barText);
 
   return (
     <g
@@ -451,23 +483,63 @@ function Bar(p: BarProps) {
       onPointerMove={p.onTip}
       onPointerLeave={p.onTipOut}
     >
-      {/* Float tail: how far this activity could slip without moving the finish. */}
-      {!p.dim && tailEnd > x + w && (
-        <line className="floattail" x1={x + w} x2={tailEnd} y1={mid} y2={mid} />
+      {/* Float tail: how far this activity could slip without moving the finish.
+          Drawn with an end tick so it reads as a span, not as stray dots. */}
+      {!p.dim && tail !== null && tail > x + w && (
+        <g className="floattail">
+          <line x1={x + w} x2={tail} y1={mid} y2={mid} />
+          <line className="cap" x1={tail} x2={tail} y1={mid - 3.5} y2={mid + 3.5} />
+        </g>
       )}
 
       {isSummary ? (
-        <SummaryBar x={x} w={w} y={p.y} cls={`${p.hue}${p.dim ? ' dim' : ''}${p.selected ? ' sel' : ''}`} onDown={p.onDown} />
+        <SummaryBar
+          x={x}
+          w={w}
+          y={p.y}
+          shape={st.summaryShape}
+          cls={`${p.hue}${p.dim ? ' dim' : ''}${p.selected ? ' sel' : ''}`}
+          onDown={p.onDown}
+        />
       ) : isMilestone ? (
-        <path className={`ms${cls}`} d={diamond(x, mid, 7.5)} onPointerDown={p.onDown} />
+        <path className={`ms${cls}`} d={milestonePath(st.milestoneShape, x, mid, 7.5)} onPointerDown={p.onDown} />
       ) : (
-        <rect className={`bar${cls}`} x={x} y={p.y + BAR_Y} width={w} height={BAR_H} rx={4} onPointerDown={p.onDown} />
+        <rect
+          className={`bar${cls}`}
+          x={x}
+          y={p.y + BAR_Y}
+          width={w}
+          height={BAR_H}
+          rx={st.barShape === 'rounded' ? 4 : 0}
+          onPointerDown={p.onDown}
+        />
       )}
 
-      {!p.dim && !isSummary && (
-        <text className="bar-label" x={x + w + KNOB_OUT + 8} y={mid}>
-          {task.name}
-        </text>
+      {!p.dim && label && place && (
+        <g>
+          {/* A backing plate exactly as wide as the text. Without it, a
+              dependency line crossing the label shows through the spaces
+              between words and reads as stray dots. */}
+          {!place.inside && (
+            <rect
+              className="label-bg"
+              x={(place.anchor === 'end' ? place.x - place.width : place.x) - 3}
+              y={mid - 8}
+              width={place.width + 6}
+              height={16}
+            />
+          )}
+          <text
+            className={`bar-label${place.inside ? ' inside' : ''}${
+              place.inside && p.critical ? ' on-fill' : ''
+            }`}
+            x={place.x}
+            y={mid}
+            textAnchor={place.anchor}
+          >
+            {label}
+          </text>
+        </g>
       )}
 
       {/* Link handles, one per end. The dot is small; its target is not, which
@@ -513,17 +585,68 @@ function Bar(p: BarProps) {
       )}
 
       {p.dropEnd && (
-        <circle
-          className="drop-target"
-          cx={p.dropEnd === 'start' ? x : x + w}
-          cy={mid}
-          r={7}
-        />
+        <circle className="drop-target" cx={p.dropEnd === 'start' ? x : x + w} cy={mid} r={7} />
       )}
 
-      {p.preview && <Preview preview={p.preview} y={p.y} type={task.type} tl={tl} />}
+      {p.preview && <Preview preview={p.preview} y={p.y} type={task.type} tl={tl} fmt={st.dateFormat} />}
     </g>
   );
+}
+
+/* ---- what a bar says, and where it says it ---- */
+
+function labelFor(task: Task, start: WorkDay, st: Settings): string {
+  if (task.type !== 'milestone') {
+    const pos = task.type === 'summary' ? st.summaryText : st.barText;
+    return pos === 'none' ? '' : task.name;
+  }
+  const date = formatWorkDay(start, st.dateFormat);
+  switch (st.milestoneLabel) {
+    case 'name':
+      return task.name;
+    case 'date':
+      return date;
+    case 'both':
+      return task.name ? `${task.name} · ${date}` : date;
+    default:
+      return '';
+  }
+}
+
+interface Placement {
+  x: number;
+  anchor: 'start' | 'end';
+  inside: boolean;
+  width: number;
+}
+
+const GAP = KNOB_OUT + 8;
+
+function labelPlacement(
+  x: number,
+  w: number,
+  tail: number | null,
+  label: string,
+  pos: TextPos,
+): Placement | null {
+  if (!label || pos === 'none') return null;
+  const width = textWidth(label);
+  if (pos === 'left') return { x: x - GAP, anchor: 'end', inside: false, width };
+  // Inside only when it actually fits; otherwise fall through to the right,
+  // which is what you wanted to see rather than a clipped word.
+  if (pos === 'inside' && w > width + 16) {
+    return { x: x + 8, anchor: 'start', inside: true, width };
+  }
+  // Past the float tail, so the two never draw through each other.
+  return { x: Math.max(x + w, tail ?? 0) + GAP, anchor: 'start', inside: false, width };
+}
+
+function milestonePlacement(x: number, label: string, st: Settings): Placement | null {
+  if (st.milestoneLabel === 'none' || !label) return null;
+  const width = textWidth(label);
+  return st.milestoneSide === 'left'
+    ? { x: x - 13, anchor: 'end', inside: false, width }
+    : { x: x + 13, anchor: 'start', inside: false, width };
 }
 
 function Preview({
@@ -531,11 +654,13 @@ function Preview({
   y,
   type,
   tl,
+  fmt,
 }: {
   preview: { start: WorkDay; end: WorkDay };
   y: number;
   type: Task['type'];
   tl: Timeline;
+  fmt: DateFormat;
 }) {
   const px = tl.x(preview.start);
   const pw = Math.max(tl.x(preview.end) - px, 2);
@@ -545,8 +670,8 @@ function Preview({
       <rect className="ghost" x={px} y={y + BAR_Y} width={pw} height={BAR_H} rx={4} />
       <rect className="ghost-outline" x={px} y={y + BAR_Y} width={pw} height={BAR_H} rx={4} />
       <text className="drag-readout" x={px} y={y - 1}>
-        {formatWorkDay(preview.start)}
-        {type !== 'milestone' && ` → ${formatWorkDay(finish)}`}
+        {formatWorkDay(preview.start, fmt)}
+        {type !== 'milestone' && ` → ${formatWorkDay(finish, fmt)}`}
       </text>
     </g>
   );
@@ -556,15 +681,30 @@ function SummaryBar({
   x,
   w,
   y,
+  shape,
   cls,
   onDown,
 }: {
   x: number;
   w: number;
   y: number;
+  shape: Settings['summaryShape'];
   cls: string;
   onDown(e: React.PointerEvent): void;
 }) {
+  if (shape === 'bar') {
+    return (
+      <rect
+        className={`sumbar solid${cls}`}
+        x={x}
+        y={y + BAR_Y}
+        width={w}
+        height={BAR_H}
+        rx={2}
+        onPointerDown={onDown}
+      />
+    );
+  }
   const top = y + BAR_Y + 2;
   const h = 6;
   const cap = 5;
@@ -626,11 +766,13 @@ function BarTip({
   schedule,
   rows,
   links,
+  fmt,
 }: {
   tip: { id: string; x: number; y: number };
   schedule: ScheduleResult;
   rows: Row[];
   links: Link[];
+  fmt: DateFormat;
 }) {
   const row = rows.find((r) => r.task.id === tip.id);
   const s = schedule.byId.get(tip.id);
@@ -649,7 +791,7 @@ function BarTip({
     >
       <div className="t-name">{row.task.name || 'Untitled activity'}</div>
       <div className="t-row">
-        <b>{formatWorkDay(s.start)}</b> → <b>{formatWorkDay(Math.max(s.start, s.end - 1))}</b>
+        <b>{formatWorkDay(s.start, fmt)}</b> → <b>{formatWorkDay(Math.max(s.start, s.end - 1), fmt)}</b>
       </div>
       {!isSummary && (
         <div className="t-row">
@@ -663,7 +805,7 @@ function BarTip({
         </div>
       )}
       {row.task.constraint && (
-        <div className="t-row">Held on {formatWorkDay(row.task.constraint.day)}</div>
+        <div className="t-row">Held on {formatWorkDay(row.task.constraint.day, fmt)}</div>
       )}
     </div>
   );
@@ -686,8 +828,19 @@ function relationship(from: End, to: End): LinkType {
   return `${from === 'end' ? 'F' : 'S'}${to === 'start' ? 'S' : 'F'}` as LinkType;
 }
 
-function diamond(cx: number, cy: number, r: number): string {
-  return `M${cx} ${cy - r} L${cx + r} ${cy} L${cx} ${cy + r} L${cx - r} ${cy} Z`;
+function milestonePath(shape: Settings['milestoneShape'], cx: number, cy: number, r: number): string {
+  switch (shape) {
+    case 'triangle':
+      return `M${cx} ${cy - r} L${cx + r} ${cy + r * 0.8} L${cx - r} ${cy + r * 0.8} Z`;
+    case 'square':
+      return `M${cx - r * 0.82} ${cy - r * 0.82} h${r * 1.64} v${r * 1.64} h${-r * 1.64} Z`;
+    case 'circle': {
+      const k = r * 0.92;
+      return `M${cx - k} ${cy} a${k} ${k} 0 1 0 ${k * 2} 0 a${k} ${k} 0 1 0 ${-k * 2} 0 Z`;
+    }
+    default:
+      return `M${cx} ${cy - r} L${cx + r} ${cy} L${cx} ${cy + r} L${cx - r} ${cy} Z`;
+  }
 }
 
 function barAnchors(

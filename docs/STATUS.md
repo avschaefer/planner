@@ -1,18 +1,20 @@
 # STATUS — Planner
 
-**Phase:** v2 interaction pass · engine, store and browser gestures all verified
-**Updated:** 2026-09-22
+**Phase:** v3 presentation pass · engine, store and browser gestures all verified
+**Updated:** 2026-09-23
 
 ---
 
 ## Now
 
 - [ ] **Plan a real program in it** and see what breaks. `npm run dev` → http://localhost:5173
-- [ ] Re-run `npm test` and `npm run e2e` — the last change shipped unverified by request.
-      The browser assertion for a held start date was rewritten (`.pin` → `.td.date.pinned`)
-      and has not been run since.
 
 ## Recently completed
+
+**2026-09-23 — v3 presentation pass.** Settings modal (palettes, bar/summary/milestone
+formatting, date format), PNG export, hide-the-table, click-away to deselect. Float tails
+redrawn with an end tick so they stop reading as stray dots. Autosave now flushes when the
+tab is hidden.
 
 **2026-09-22 — v2 interaction pass.** Date pickers, MS Project predecessor shorthand, outline
 numbering, link dragging onto whole rows with the type from the gesture, multi-select by lasso
@@ -21,7 +23,7 @@ the stored `Task.code`, the dark theme and the pin glyph were removed. See `CHAN
 
 ## Built
 
-All 37 requirements have an implementation. Every row below is verified by a test that has run.
+All 41 requirements have an implementation. Every row below is verified by a test that has run.
 
 | Area | State |
 |---|---|
@@ -43,10 +45,14 @@ All 37 requirements have an implementation. Every row below is verified by a tes
 | Row drag-and-drop reorder and re-nest | Built · browser test |
 | Timeline zoom, today marker, weekend shading | Built · browser-exercised |
 | Dependency popover, critical filter | Built · browser test for the filter |
+| Presentation settings, persisted (R-057) | Built · browser test incl. reload |
+| PNG export of the whole chart (R-058) | Built · browser test |
+| Hide the activity table (R-059) | Built · browser test |
+| Click-away to clear the selection (R-060) | Built · browser test |
 | IndexedDB persistence, JSON import/export | Built · reload test |
 
-**Test suites:** 51 unit tests (Vitest) · 16 browser tests (Playwright). Both pass as of
-2026-09-22.
+**Test suites:** 51 unit tests (Vitest) · 21 browser tests (Playwright). Both pass as of
+2026-09-23.
 
 > Running Playwright here needs Chromium's shared libraries:
 > `sudo apt-get install -y libnss3 libnspr4 libasound2t64`.
@@ -78,7 +84,7 @@ Nothing.
 
 ## Decisions log
 
-`docs/EDD.md` §6, D-001 … D-022. The four that shaped the build:
+`docs/EDD.md` §6, D-001 … D-025. The four that shaped the build:
 
 - **D-006** — summary rows are containers and carry no dependencies
 - **D-007** — dragging an activity with predecessors pins it (visible, removable) rather than

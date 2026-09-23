@@ -1,6 +1,6 @@
 # PRD — Planner
 
-**Status:** v2 interaction pass · **Last updated:** 2026-09-22 · **Owner:** av
+**Status:** v3 presentation pass · **Last updated:** 2026-09-23 · **Owner:** av
 
 ---
 
@@ -106,8 +106,12 @@ Priority: **P0** = the app is pointless without it · **P1** = needed before it'
 | R-054 | Drag rows to reorder and re-nest | A grip in the leftmost column drags a row (with its subtree) up and down the outline; dragging sideways sets the depth, moving it into or out of a summary. The insertion point and depth are previewed before release; Escape abandons | P1 |
 | R-055 | MS Project predecessor shorthand | `3`, `3FS`, `3FS+2d`, `3+2`, and the reversed `FS3+2d` all parse, in any case, separated by commas, semicolons or spaces. Output is canonical: `3`, `4SS+2d` | P1 |
 | R-056 | Summary groups are colour-coded | Each top-level summary takes a hue; its bar is that hue and everything inside it inherits a tint of it, in the chart and as a rail in the table. Critical activities override the group hue with the critical colour | P2 |
+| R-057 | Presentation settings | One modal sets the accent, group and critical-path palettes; activity and summary bar shape and where their name sits (left, inside, right, none); milestone shape, label (name, date, both, none) and side; the date format used everywhere; and whether float tails are drawn. Settings persist across sessions and projects | P2 |
+| R-058 | Export the chart as a PNG | One action writes the whole timeline — not just the visible scroll window — with its header, at 2× for print. The image carries the current formatting | P2 |
+| R-059 | Hide the activity table | A toggle collapses the table so the chart has the whole window; the choice persists | P2 |
+| R-060 | Clicking empty space clears the selection | Clicking the chart below the last bar, the timeline header, the table header, or the table's empty area deselects, so a snapshot carries no selection highlight | P2 |
 
-**Totals: 37 requirements — P0: 18 · P1: 16 · P2: 3**
+**Totals: 41 requirements — P0: 18 · P1: 16 · P2: 7**
 
 ---
 
@@ -138,7 +142,7 @@ Explicitly not built, at any priority:
 | Complex calendar rules (shift patterns, per-activity calendars) | Administrative/configuration screens |
 | Baselines and planned-vs-actual variance | Progress tracking / percent complete |
 | Authentication, accounts, billing, marketing pages | Multi-user editing or sharing *(deferred, not abandoned — see Q-1)* |
-| Reporting, exports to PDF/XER/MPP | Mobile layout |
+| Reporting, exports to PDF/XER/MPP *(PNG of the chart is in — R-058)* | Mobile layout |
 
 Holidays are out entirely — the calendar is Mon–Fri with no exception list.
 

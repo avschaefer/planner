@@ -22,6 +22,7 @@ import type {
 } from '../engine/types';
 import { idbRepo } from '../persist/idbRepo';
 import type { ScheduleRepo } from '../persist/repo';
+import { applyTheme, loadSettings, saveSettings, type Settings } from '../ui/settings';
 
 const repo: ScheduleRepo = idbRepo;
 const UNDO_LIMIT = 100;
@@ -52,6 +53,7 @@ interface State {
   criticalOnly: boolean;
   notice: string | null;
   loading: boolean;
+  settings: Settings;
 
   init(): Promise<void>;
   createProject(name: string): Promise<void>;
@@ -90,15 +92,38 @@ interface State {
   setPxPerDay(px: number): void;
   zoom(direction: 1 | -1): void;
   toggleCriticalOnly(): void;
+  updateSettings(patch: Partial<Settings>): void;
   notify(message: string | null): void;
 }
 
 export const ZOOM_STEPS = [2, 3, 4.5, 7, 11, 16, 24, 34];
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
+let pending: ProjectDoc | null = null;
+
 function scheduleSave(doc: ProjectDoc) {
+  pending = doc;
   if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => void repo.save(doc), 200);
+  saveTimer = setTimeout(flushSave, 200);
+}
+
+/** Write whatever the debounce is still holding. */
+function flushSave() {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = null;
+  const doc = pending;
+  pending = null;
+  if (doc) void repo.save(doc);
+}
+
+/* An edit made in the last 200ms would otherwise be lost to a reload or a
+   closed tab. The write itself is async, so this narrows the window rather
+   than closing it — but it turns "usually fine" into "almost always fine". */
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', flushSave);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushSave();
+  });
 }
 
 function blankDoc(name: string): ProjectDoc {
@@ -159,6 +184,7 @@ export const useStore = create<State>((set, get) => {
     criticalOnly: false,
     notice: null,
     loading: true,
+    settings: loadSettings(),
 
     async init() {
       set({ projects: await repo.list(), loading: false });
@@ -618,6 +644,14 @@ export const useStore = create<State>((set, get) => {
 
     toggleCriticalOnly() {
       set({ criticalOnly: !get().criticalOnly });
+    },
+
+    /** Presentation only — outside the document, so outside undo. */
+    updateSettings(patch) {
+      const settings = { ...get().settings, ...patch };
+      set({ settings });
+      applyTheme(settings);
+      saveSettings(settings);
     },
 
     notify(message) {

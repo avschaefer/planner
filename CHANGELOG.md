@@ -7,6 +7,14 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Added
 
+- Settings modal: accent / summary-group / critical-path palettes, activity and summary bar
+  shape and name position (left, inside, right, none), milestone shape, label and side, the
+  date format used everywhere, and a float-tail switch. Persists across sessions. [R-057]
+- Export the chart as a PNG — the whole timeline with its header, at 2×. [R-058]
+- A toggle that hides the activity table and gives the chart the whole window. [R-059]
+- Clicking the chart below the last bar, either header, or the table's empty area clears the
+  selection, so a snapshot carries no highlight. [R-060]
+
 - Date pickers on the Start and Finish cells — month grid, weekends inert, today ringed,
   arrow keys walking working days. Typing still works. [R-021]
 - MS Project predecessor shorthand: `3`, `3FS`, `3FS+2d`, `3+2`, and the reversed `FS3+2d`,
@@ -28,6 +36,11 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Changed
 
+- Float tails are drawn with an end tick and the bar name is placed past them, so the two no
+  longer overlap. They were previously reading as stray dots where a label crossed them.
+- The project finish date is now a read-out in the toolbar rather than a run of muted text.
+- SVG labels get a measured backing plate instead of a stroke halo, so a dependency line
+  crossing a name no longer shows through the gaps between words.
 - New light theme: warm neutral canvas, indigo accent, segmented toolbar clusters with icons,
   a month band in the timeline header, activity names beside their bars. [R-052]
 - Table columns rebalanced so the Activity name is never crushed by the fixed columns. [R-020]
@@ -43,7 +56,9 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 - The `#` cell handled selection a second time after the row had already handled it, so
   Cmd/Ctrl-clicking a row number toggled twice and did nothing. [R-053]
 - Three Playwright helpers committed edits with `Escape`, which discards them — the browser
-  suite had never been run, so this had gone unnoticed. All 16 tests pass.
+  suite had never been run, so this had gone unnoticed. All 21 tests pass.
+- A pending autosave is now flushed when the tab is hidden or closed. An edit made within
+  200ms of a reload was being dropped.
 
 ### Removed
 
