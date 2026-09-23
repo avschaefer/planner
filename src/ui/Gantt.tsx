@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
   calIndexFromWorkDay,
   formatWorkDay,
@@ -44,7 +44,9 @@ interface Props {
   criticalOnly: boolean;
 }
 
-export function Gantt({ rows, hues, schedule, links, timeline: tl, criticalOnly }: Props) {
+/* Memoised: opening a cell editor in the table changes nothing the chart
+   draws, and re-rendering the whole SVG for it was what made editing lag. */
+export const Gantt = memo(function Gantt({ rows, hues, schedule, links, timeline: tl, criticalOnly }: Props) {
   const selection = useStore((s) => s.selection);
   const settings = useStore((s) => s.settings);
   const [drag, setDrag] = useState<Drag | null>(null);
@@ -100,7 +102,7 @@ export function Gantt({ rows, hues, schedule, links, timeline: tl, criticalOnly 
       if (cur.kind === 'link') {
         const row = rowAt(p.y);
         const id = row?.task.id;
-        const bad = !row || row.task.type === 'summary' || id === cur.fromId;
+        const bad = !row || id === cur.fromId;
         setDrag({
           ...cur,
           x: p.x,
@@ -430,7 +432,7 @@ export function Gantt({ rows, hues, schedule, links, timeline: tl, criticalOnly 
       {selection.linkId && linkAt && <LinkPopover at={linkAt} />}
     </>
   );
-}
+});
 
 /* ---------------------------------------------------------------- bar ---- */
 
@@ -468,7 +470,7 @@ function Bar(p: BarProps) {
   const cls =
     `${p.critical ? ' critical' : p.hue}${p.selected ? ' sel' : ''}${p.dim ? ' dim' : ''}`;
   const mid = p.y + ROW_H / 2;
-  const showKnobs = p.active && !p.dim && !isSummary && !p.dragging;
+  const showKnobs = p.active && !p.dim && !p.dragging;
   const tail =
     st.floatTails && !p.critical && p.totalFloat > 0 && !isSummary ? tl.x(p.end + p.totalFloat) : null;
 
@@ -498,6 +500,9 @@ function Bar(p: BarProps) {
           w={w}
           y={p.y}
           shape={st.summaryShape}
+          // Text inside a summary needs a full-height bar; otherwise it keeps
+          // the thin bracket profile.
+          thick={st.summaryText === 'inside'}
           cls={`${p.hue}${p.dim ? ' dim' : ''}${p.selected ? ' sel' : ''}`}
           onDown={p.onDown}
         />
@@ -522,7 +527,7 @@ function Bar(p: BarProps) {
               between words and reads as stray dots. */}
           {!place.inside && (
             <rect
-              className="label-bg"
+              className={`label-bg${p.selected ? ' sel' : ''}`}
               x={(place.anchor === 'end' ? place.x - place.width : place.x) - 3}
               y={mid - 8}
               width={place.width + 6}
@@ -531,7 +536,7 @@ function Bar(p: BarProps) {
           )}
           <text
             className={`bar-label${place.inside ? ' inside' : ''}${
-              place.inside && p.critical ? ' on-fill' : ''
+              place.inside && (p.critical || isSummary) ? ' on-fill' : ''
             }`}
             x={place.x}
             y={mid}
@@ -682,6 +687,7 @@ function SummaryBar({
   w,
   y,
   shape,
+  thick,
   cls,
   onDown,
 }: {
@@ -689,10 +695,11 @@ function SummaryBar({
   w: number;
   y: number;
   shape: Settings['summaryShape'];
+  thick: boolean;
   cls: string;
   onDown(e: React.PointerEvent): void;
 }) {
-  if (shape === 'bar') {
+  if (thick) {
     return (
       <rect
         className={`sumbar solid${cls}`}
@@ -700,6 +707,19 @@ function SummaryBar({
         y={y + BAR_Y}
         width={w}
         height={BAR_H}
+        rx={4}
+        onPointerDown={onDown}
+      />
+    );
+  }
+  if (shape === 'bar') {
+    return (
+      <rect
+        className={`sumbar solid${cls}`}
+        x={x}
+        y={y + BAR_Y + 4}
+        width={w}
+        height={BAR_H - 8}
         rx={2}
         onPointerDown={onDown}
       />

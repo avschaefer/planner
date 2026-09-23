@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { formatWorkDay, parseDateInput, toIso, toWorkDay } from '../engine/calendar';
 import { descendants } from '../engine/graph';
 import { rowIds, tasksByRowId } from '../engine/ids';
@@ -248,7 +248,7 @@ export function TaskTable({ rows, hues, schedule, editing, setEditing, onAdd }: 
             <div
               className={`td editable${editing?.taskId === task.id && editing.field === 'name' ? ' editing' : ''}`}
               style={{ flex: 1, minWidth: 160, paddingLeft: 8 + row.depth * 15 }}
-              onDoubleClick={(e) => !selecting(e) && setEditing({ taskId: task.id, field: 'name' })}
+              onClick={(e) => !selecting(e) && setEditing({ taskId: task.id, field: 'name' })}
             >
               <div className="tname">
                 {isSummary ? (
@@ -258,6 +258,7 @@ export function TaskTable({ rows, hues, schedule, editing, setEditing, onAdd }: 
                       e.stopPropagation();
                       store.toggleCollapsed(task.id);
                     }}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <Chevron />
                   </span>
@@ -283,10 +284,7 @@ export function TaskTable({ rows, hues, schedule, editing, setEditing, onAdd }: 
                     }}
                   />
                 ) : (
-                  <span
-                    className={`label${task.name ? '' : ' untitled'}`}
-                    onClick={(e) => !selecting(e) && setEditing({ taskId: task.id, field: 'name' })}
-                  >
+                  <span className={`label${task.name ? '' : ' untitled'}`}>
                     {task.name || 'Untitled activity'}
                   </span>
                 )}
@@ -341,7 +339,7 @@ export function TaskTable({ rows, hues, schedule, editing, setEditing, onAdd }: 
 
             <EditCell
               className="pred"
-              editable={!isSummary}
+              editable
               editing={editing?.taskId === task.id && editing.field === 'pred'}
               display={valueFor(task.id, 'pred')}
               value={valueFor(task.id, 'pred')}
@@ -487,7 +485,7 @@ function CellInput({
   const ref = useRef<HTMLInputElement>(null);
   const done = useRef(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     ref.current?.focus();
     ref.current?.select();
   }, []);

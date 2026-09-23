@@ -79,16 +79,27 @@ describe('store', () => {
     expect(s().notice).toMatch(/depend on itself/);
   });
 
-  it('refuses a link onto a summary', () => {
+  it('links from a summary hold the successor until the whole group finishes', () => {
+    addActivities([
+      ['Phase', 1],
+      ['Child', 4],
+      ['After', 1],
+    ]);
+    s().indent(codeId('Child'));
+    s().addLink(codeId('Phase'), codeId('After'));
+    expect(s().doc!.links).toHaveLength(1);
+    expect(startOf('After')).toBe(4);
+  });
+
+  it('refuses a link between a summary and its own contents', () => {
     addActivities([
       ['Phase', 1],
       ['Child', 2],
-      ['Other', 1],
     ]);
     s().indent(codeId('Child'));
-    s().addLink(codeId('Other'), codeId('Phase'));
+    s().addLink(codeId('Phase'), codeId('Child'));
     expect(s().doc!.links).toHaveLength(0);
-    expect(s().notice).toMatch(/carry no logic/);
+    expect(s().notice).toMatch(/depend on itself/);
   });
 
   it('pins a dragged activity instead of breaking its logic', () => {

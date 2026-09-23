@@ -198,3 +198,53 @@ describe('summary rollup', () => {
     expect(r.OUTER).toMatchObject({ s: 0, e: 6 });
   });
 });
+
+describe('links on summaries', () => {
+  // S = { A (3d), B (5d, starts after A) } spans days 0–8. T sits outside it.
+  const group = (): Task[] => [
+    { ...task('S', 0), type: 'summary', id: 'S', name: 'S' },
+    task('A', 3, { parentId: 'S', order: 0 }),
+    task('B', 5, { parentId: 'S', order: 1 }),
+    task('T', 2, { order: 1 }),
+  ];
+  const inner = link('A', 'B');
+
+  it('FS from a summary starts the successor after the whole group', () => {
+    const r = rel(doc(group(), [inner, link('S', 'T')]));
+    expect(r.S).toMatchObject({ s: 0, e: 8 });
+    expect(r.T).toMatchObject({ s: 8, e: 10 });
+  });
+
+  it('SS from a summary reads the group start, not its last member', () => {
+    const r = rel(doc(group(), [inner, link('S', 'T', 'SS', 1)]));
+    expect(r.T.s).toBe(1);
+  });
+
+  it('a link onto a summary holds back every activity inside it', () => {
+    const tasks: Task[] = [
+      task('P', 4, { order: 0 }),
+      { ...task('S', 0), type: 'summary', id: 'S', name: 'S', order: 1 },
+      task('A', 3, { parentId: 'S', order: 0 }),
+      task('B', 2, { parentId: 'S', order: 1 }),
+    ];
+    const r = rel(doc(tasks, [link('P', 'S')]));
+    expect(r.A.s).toBe(4);
+    expect(r.B.s).toBe(4);
+    expect(r.S).toMatchObject({ s: 4, e: 7 });
+  });
+
+  it('carries criticality back through the group', () => {
+    const r = rel(doc(group(), [inner, link('S', 'T')]));
+    expect(r.B.cr).toBe(true);
+    expect(r.T.cr).toBe(true);
+  });
+
+  it('refuses a link between a summary and its own contents', () => {
+    expect(wouldCycle(group(), [], link('S', 'A'))).toBe(true);
+    expect(wouldCycle(group(), [], link('B', 'S'))).toBe(true);
+  });
+
+  it('refuses a cycle that runs through a summary', () => {
+    expect(wouldCycle(group(), [link('S', 'T')], link('T', 'A'))).toBe(true);
+  });
+});

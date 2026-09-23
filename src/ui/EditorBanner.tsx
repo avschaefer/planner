@@ -1,4 +1,5 @@
 import { useStore } from '../store/store';
+import { Button } from './Button';
 
 /**
  * One editor at a time (PRD Q-6). When someone else holds the lock this is the
@@ -17,7 +18,9 @@ export function EditorBanner() {
     <div className="editing-banner">
       <span className="dot" />
       <span>Someone else is editing · viewing live</span>
-      <button onClick={() => void takeOver()}>Take over editing</button>
+      <Button variant="secondary" size="sm" onClick={() => void takeOver()}>
+        Take over editing
+      </Button>
     </div>
   );
 }

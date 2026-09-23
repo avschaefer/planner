@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import type { ProjectDoc } from '../engine/types';
 import { useStore } from '../store/store';
+import { Button } from './Button';
 
 /** A small bar-chart glyph. The product in one mark, at 22px. */
 function Mark() {
@@ -29,6 +30,17 @@ export function ProjectList() {
   const { projects, loading, createProject, openProject, deleteProject, importDoc } = useStore();
   const [name, setName] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+
+  /** Same behaviour from Enter or the button; an empty name just asks for one. */
+  function create() {
+    if (!name.trim()) {
+      nameRef.current?.focus();
+      return;
+    }
+    void createProject(name);
+    setName('');
+  }
 
   async function onImport(file: File) {
     try {
@@ -52,26 +64,20 @@ export function ProjectList() {
       <div className="new">
         <input
           placeholder="Name a new schedule…"
+          ref={nameRef}
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && name.trim()) {
-              void createProject(name);
-              setName('');
-            }
+            if (e.key === 'Enter') create();
           }}
           autoFocus
         />
-        <button
-          className="primary"
-          disabled={!name.trim()}
-          onClick={() => name.trim() && (void createProject(name), setName(''))}
-        >
+        <Button variant="primary" onClick={create}>
           Create
-        </button>
-        <button className="plain" onClick={() => fileRef.current?.click()}>
+        </Button>
+        <Button variant="ghost" onClick={() => fileRef.current?.click()}>
           Import…
-        </button>
+        </Button>
         <input
           ref={fileRef}
           type="file"
@@ -97,8 +103,10 @@ export function ProjectList() {
                 {p.taskCount} {p.taskCount === 1 ? 'activity' : 'activities'}
               </span>
               <span className="when">{relativeTime(p.updatedAt)}</span>
-              <button
-                className="plain del"
+              <Button
+                variant="ghost"
+                size="sm"
+                className="del"
                 title="Delete schedule"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -106,7 +114,7 @@ export function ProjectList() {
                 }}
               >
                 Delete
-              </button>
+              </Button>
             </div>
           ))}
         </div>

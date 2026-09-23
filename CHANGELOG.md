@@ -7,6 +7,7 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Added
 
+- Summaries can be linked. A link from a summary reads the group's extent — FS from `s2` starts the successor after `s2`'s last activity — and a link onto a summary holds back everything inside it. Links can be dragged onto summary rows and typed into their predecessor cells. [R-018]
 - **Shared backend.** Schedules live in Supabase Postgres, one row per project mirroring
   `ProjectDoc`, reached through a new `ScheduleRepo` implementation. No call site changed. [R-062]
 - **Passcode gate.** One shared passcode, checked in Vercel Routing Middleware (`proxy.ts`) ahead of
@@ -48,6 +49,10 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Changed
 
+- Cell editing: the cell itself becomes the field — borderless input, an accent ring, no text shift. One click anywhere in a cell opens it, including the empty part of the name box. The chart no longer re-renders when an editor opens, which was the lag.
+- Duration and predecessors are purple, marking what you type; dates and float stay grey as computed values. Every editable cell shows a pointer.
+- One `Button` component for every button in the app. [R-052]
+- Summary text set to "Inside" draws a full-height summary bar; otherwise summaries keep the thin profile.
 - Float tails are drawn with an end tick and the bar name is placed past them, so the two no
   longer overlap. They were previously reading as stray dots where a label crossed them.
 - The project finish date is now a read-out in the toolbar rather than a run of muted text.
@@ -63,6 +68,10 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Fixed
 
+- A link from a summary was saved but ignored — the successor did not move. [R-018]
+- The project list's Create button rendered blank: a disabled-hover rule painted white under white text. It is now the same component as Add activity. [R-052]
+- Summary text "Inside" was unreadable on the thin summary bar.
+- A label on a selected row showed a pale box behind it.
 - Deployed middleware and API functions crashed at load: `package.json` is `type: module`, so relative imports in `api/` and `proxy.ts` need `.js` extensions. `vercel dev` hid it. [R-061]
 - A save in flight when the tab closes now uses `keepalive`, so it still lands.
 - Shift and Cmd/Ctrl click in the table opened a cell editor instead of changing the

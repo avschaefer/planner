@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { formatWorkDay } from '../engine/calendar';
 import { primaryTaskId, useStore, ZOOM_STEPS } from '../store/store';
 import { groupHues } from './colors';
+import { Button } from './Button';
 import { exportGanttPng } from './exportPng';
 import { Gantt } from './Gantt';
 import * as Icon from './icons';
@@ -209,52 +210,52 @@ export function ScheduleView() {
   return (
     <>
       <div className="toolbar">
-        <button className="plain" onClick={() => store.closeProject()} title="All schedules">
+        <Button variant="ghost" icon onClick={() => store.closeProject()} title="All schedules">
           <Icon.Back />
-        </button>
+        </Button>
         <span className="title">{doc.name}</span>
 
-        <button className="primary" onClick={addTask} title="Add activity (Enter)">
+        <Button variant="primary" onClick={addTask} title="Add activity (Enter)">
           Add activity
-        </button>
+        </Button>
 
         <div className="cluster">
-          <button disabled={!canIndent} onClick={() => store.indent(selection.taskIds)} title="Indent (Alt+→)">
+          <Button variant="ghost" icon disabled={!canIndent} onClick={() => store.indent(selection.taskIds)} title="Indent (Alt+→)">
             <Icon.Indent />
-          </button>
-          <button disabled={!canIndent} onClick={() => store.outdent(selection.taskIds)} title="Outdent (Alt+←)">
+          </Button>
+          <Button variant="ghost" icon disabled={!canIndent} onClick={() => store.outdent(selection.taskIds)} title="Outdent (Alt+←)">
             <Icon.Outdent />
-          </button>
+          </Button>
         </div>
 
         <div className="cluster">
-          <button onClick={() => store.undo()} disabled={!store.undoStack.length} title="Undo (Cmd/Ctrl+Z)">
+          <Button variant="ghost" icon onClick={() => store.undo()} disabled={!store.undoStack.length} title="Undo (Cmd/Ctrl+Z)">
             <Icon.Undo />
-          </button>
-          <button onClick={() => store.redo()} disabled={!store.redoStack.length} title="Redo (Shift+Cmd/Ctrl+Z)">
+          </Button>
+          <Button variant="ghost" icon onClick={() => store.redo()} disabled={!store.redoStack.length} title="Redo (Shift+Cmd/Ctrl+Z)">
             <Icon.Redo />
-          </button>
+          </Button>
         </div>
 
         <div className="cluster">
-          <button onClick={() => store.zoom(-1)} disabled={pxPerDay <= ZOOM_STEPS[0]} title="Zoom out (−)">
+          <Button variant="ghost" icon onClick={() => store.zoom(-1)} disabled={pxPerDay <= ZOOM_STEPS[0]} title="Zoom out (−)">
             <Icon.Minus />
-          </button>
+          </Button>
           <span className="zoomlabel">{tl.scale}</span>
-          <button onClick={() => store.zoom(1)} disabled={pxPerDay >= ZOOM_STEPS.at(-1)!} title="Zoom in (+)">
+          <Button variant="ghost" icon onClick={() => store.zoom(1)} disabled={pxPerDay >= ZOOM_STEPS.at(-1)!} title="Zoom in (+)">
             <Icon.Plus />
-          </button>
+          </Button>
         </div>
 
         <div className="cluster">
-          <button
-            className={criticalOnly ? 'on' : ''}
+          <Button
+            variant="ghost"
+            active={criticalOnly}
             onClick={() => store.toggleCriticalOnly()}
             title="Emphasise the critical path"
-            style={{ padding: '0 10px', gap: 6, display: 'flex', alignItems: 'center' }}
           >
             <Icon.Critical /> Critical path
-          </button>
+          </Button>
         </div>
 
         <span className="spacer" />
@@ -267,29 +268,27 @@ export function ScheduleView() {
         </span>
 
         <div className="cluster">
-          <button
-            className={settings.showTable ? '' : 'on'}
+          <Button
+            variant="ghost"
+            icon
+            active={!settings.showTable}
             onClick={() => store.updateSettings({ showTable: !settings.showTable })}
             title={settings.showTable ? 'Hide the activity table' : 'Show the activity table'}
           >
             <Icon.PanelLeft />
-          </button>
-          <button onClick={() => void exportPng()} title="Export the chart as a PNG">
+          </Button>
+          <Button variant="ghost" icon onClick={() => void exportPng()} title="Export the chart as a PNG">
             <Icon.Image />
-          </button>
-          <button onClick={exportJson} title="Export JSON">
+          </Button>
+          <Button variant="ghost" icon onClick={exportJson} title="Export JSON">
             <Icon.Export />
-          </button>
-          <button
-            className={showSettings ? 'on' : ''}
-            onClick={() => setShowSettings((v) => !v)}
-            title="Settings"
-          >
+          </Button>
+          <Button variant="ghost" icon active={showSettings} onClick={() => setShowSettings((v) => !v)} title="Settings">
             <Icon.Gear />
-          </button>
-          <button onClick={() => setShowKeys((v) => !v)} title="Keyboard shortcuts (?)">
+          </Button>
+          <Button variant="ghost" icon onClick={() => setShowKeys((v) => !v)} title="Keyboard shortcuts (?)">
             <Icon.Keyboard />
-          </button>
+          </Button>
         </div>
       </div>
 

@@ -3,6 +3,7 @@ import { rowIds } from '../engine/ids';
 import { formatRelationship, parseRelationship } from '../engine/predecessors';
 import type { LinkType } from '../engine/types';
 import { useStore } from '../store/store';
+import { Button } from './Button';
 
 const TYPES: LinkType[] = ['FS', 'SS', 'FF', 'SF'];
 
@@ -56,13 +57,15 @@ export function LinkPopover({ at }: { at: { x: number; y: number } }) {
       </h4>
       <div className="rel">
         {TYPES.map((t) => (
-          <button
+          <Button
             key={t}
-            className={link.type === t ? 'on' : ''}
+            variant="secondary"
+            size="sm"
+            active={link.type === t}
             onClick={() => updateLink(link.id, { type: t })}
           >
             {t}
-          </button>
+          </Button>
         ))}
       </div>
       <div className="row">
@@ -77,9 +80,9 @@ export function LinkPopover({ at }: { at: { x: number; y: number } }) {
           }}
           onBlur={() => commit(text)}
         />
-        <button className="plain" title="Delete this relationship" onClick={() => deleteLink(link.id)}>
+        <Button variant="ghost" size="sm" title="Delete this relationship" onClick={() => deleteLink(link.id)}>
           Remove
-        </button>
+        </Button>
       </div>
       <div className="hint">Lag in working days — FS+2d, SS-1d. Delete removes the link.</div>
     </div>

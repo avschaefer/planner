@@ -9,6 +9,7 @@ import {
   todayIso,
 } from '../engine/calendar';
 import type { Iso } from '../engine/types';
+import { Button } from './Button';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -144,9 +145,9 @@ export function DateField({
         />
 
         <div className="dp-head">
-          <button className="plain" onClick={() => shiftMonth(-1)} title="Previous month">‹</button>
+          <Button variant="ghost" size="sm" icon onClick={() => shiftMonth(-1)} title="Previous month">‹</Button>
           <span className="m">{MONTHS[m - 1]} {y}</span>
-          <button className="plain" onClick={() => shiftMonth(1)} title="Next month">›</button>
+          <Button variant="ghost" size="sm" icon onClick={() => shiftMonth(1)} title="Next month">›</Button>
         </div>
 
         <div className="dp-grid">
@@ -182,8 +183,9 @@ export function DateField({
         </div>
 
         <div className="dp-foot">
-          <button
-            className="plain"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => {
               let t = today;
               while (isWeekendCalIndex(t)) t += 1;
@@ -191,10 +193,11 @@ export function DateField({
             }}
           >
             Today
-          </button>
+          </Button>
           {hasConstraint && (
-            <button
-              className="plain"
+            <Button
+              variant="ghost"
+              size="sm"
               title="Stop holding this activity on a date and let its logic drive it again"
               onClick={() => {
                 onClear();
@@ -202,7 +205,7 @@ export function DateField({
               }}
             >
               Release to logic
-            </button>
+            </Button>
           )}
         </div>
       </div>

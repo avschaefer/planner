@@ -1,5 +1,13 @@
 import { toWorkDay } from './calendar';
-import { descendants, schedulable, topoSort, treeOrder } from './graph';
+import {
+  descendants,
+  orderingLinks,
+  resolveLinks,
+  schedulable,
+  topoSort,
+  treeOrder,
+  type LeafEdge,
+} from './graph';
 import type { Link, ProjectDoc, Scheduled, ScheduleResult, Task, WorkDay } from './types';
 
 /**
@@ -17,7 +25,7 @@ export function durationOf(t: Task): number {
 }
 
 /** Earliest start `to` may take given `from`'s scheduled position. */
-function earliestStart(link: Link, from: Scheduled, toDuration: number): WorkDay {
+function earliestStart(link: Link, from: { start: WorkDay; end: WorkDay }, toDuration: number): WorkDay {
   switch (link.type) {
     case 'FS':
       return from.end + link.lag;
@@ -50,32 +58,49 @@ export function scheduleProject(doc: ProjectDoc): ScheduleResult {
   const byId = new Map(activities.map((t) => [t.id, t]));
   const projectStart = toWorkDay(doc.dataDate, 'forward');
 
-  const links = doc.links.filter((l) => byId.has(l.fromId) && byId.has(l.toId));
-  const preds = new Map<string, Link[]>();
-  const succs = new Map<string, Link[]>();
-  const push = (m: Map<string, Link[]>, key: string, l: Link) => {
+  // Links may touch summaries; resolve them to the activities they stand for,
+  // dropping any that would tie a summary to its own contents.
+  const edges = resolveLinks(doc.tasks, doc.links).filter(
+    (e) => byId.has(e.to) && e.from.every((f) => byId.has(f)) && !e.from.includes(e.to),
+  );
+  const preds = new Map<string, LeafEdge[]>();
+  const succs = new Map<string, LeafEdge[]>();
+  const push = (m: Map<string, LeafEdge[]>, key: string, e: LeafEdge) => {
     const list = m.get(key);
-    if (list) list.push(l);
-    else m.set(key, [l]);
+    if (list) list.push(e);
+    else m.set(key, [e]);
   };
-  for (const l of links) {
-    push(preds, l.toId, l);
-    push(succs, l.fromId, l);
+  for (const e of edges) {
+    push(preds, e.to, e);
+    for (const f of e.from) push(succs, f, e);
   }
 
   // A cycle here means a link slipped past validation; fall back to tree order
   // so the app still renders something rather than throwing at the user.
-  const order = topoSort(ids, links) ?? ids;
+  const order = topoSort(ids, orderingLinks(edges)) ?? ids;
   const out = new Map<string, Scheduled>();
+
+  /** The span of a link's source: one activity, or a whole summary group. */
+  const extent = (from: string[]) => {
+    let start = Infinity;
+    let end = -Infinity;
+    for (const f of from) {
+      const s = out.get(f);
+      if (!s) continue;
+      start = Math.min(start, s.start);
+      end = Math.max(end, s.end);
+    }
+    return Number.isFinite(start) ? { start, end } : null;
+  };
 
   // Forward pass.
   for (const id of order) {
     const task = byId.get(id)!;
     const dur = durationOf(task);
     let start = task.constraint ? Math.max(projectStart, task.constraint.day) : projectStart;
-    for (const l of preds.get(id) ?? []) {
-      const from = out.get(l.fromId);
-      if (from) start = Math.max(start, earliestStart(l, from, dur));
+    for (const e of preds.get(id) ?? []) {
+      const from = extent(e.from);
+      if (from) start = Math.max(start, earliestStart(e.link, from, dur));
     }
     out.set(id, {
       start,
@@ -98,9 +123,15 @@ export function scheduleProject(doc: ProjectDoc): ScheduleResult {
     const dur = durationOf(task);
     const self = out.get(id)!;
     let lateEnd = projectEnd;
-    for (const l of succs.get(id) ?? []) {
-      const to = out.get(l.toId);
-      if (to) lateEnd = Math.min(lateEnd, latestEnd(l, to, dur));
+    for (const e of succs.get(id) ?? []) {
+      const to = out.get(e.to);
+      if (!to) continue;
+      // A start-anchored link from a group constrains only the group's
+      // earliest-starting activity; a finish-anchored one binds every member,
+      // since the group finishes when its last activity does.
+      const startAnchored = e.link.type === 'SS' || e.link.type === 'SF';
+      if (startAnchored && e.from.length > 1 && self.start !== extent(e.from)!.start) continue;
+      lateEnd = Math.min(lateEnd, latestEnd(e.link, to, dur));
     }
     self.lateEnd = lateEnd;
     self.lateStart = lateEnd - dur;
@@ -114,8 +145,8 @@ export function scheduleProject(doc: ProjectDoc): ScheduleResult {
 }
 
 /**
- * Summaries are containers, not activities: they carry no logic of their own and
- * their bar is simply the extent of everything beneath them.
+ * A summary's bar is the extent of everything beneath it. It is never
+ * scheduled itself: links that touch it are carried by its activities.
  */
 function rollUpSummaries(
   tasks: Task[],

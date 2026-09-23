@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { DATE_FORMATS } from '../engine/calendar';
 import { useStore } from '../store/store';
+import { Button } from './Button';
 import {
   ACCENTS,
   CRITICALS,
@@ -51,13 +52,15 @@ export function SettingsModal({ onClose }: { onClose(): void }) {
   const seg = <K extends keyof S>(key: K, options: Array<{ id: S[K]; label: string }>) => (
     <div className="seg">
       {options.map((o) => (
-        <button
+        <Button
           key={String(o.id)}
-          className={settings[key] === o.id ? 'on' : ''}
+          variant="secondary"
+          size="sm"
+          active={settings[key] === o.id}
           onClick={() => update({ [key]: o.id } as Partial<S>)}
         >
           {o.label}
-        </button>
+        </Button>
       ))}
     </div>
   );
@@ -68,9 +71,9 @@ export function SettingsModal({ onClose }: { onClose(): void }) {
       <div className="modal" role="dialog" aria-label="Settings">
         <header>
           <h3>Settings</h3>
-          <button className="plain" onClick={onClose} title="Close (Esc)">
+          <Button variant="ghost" size="sm" icon onClick={onClose} title="Close (Esc)">
             ✕
-          </button>
+          </Button>
         </header>
 
         <div className="modal-body">

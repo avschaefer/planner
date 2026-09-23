@@ -61,26 +61,52 @@ body {
   overflow: hidden;
 }
 
+/* A bare <button> is only a reset; every visible button is .btn (ui/Button.tsx). */
 button {
   font: inherit;
-  color: var(--text);
-  background: var(--panel);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  padding: 4px 10px;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
   cursor: pointer;
-  transition: background 0.1s ease, border-color 0.1s ease, color 0.1s ease;
 }
-button:hover { background: var(--sunken); }
-button:active { background: var(--line-soft); }
-button.plain { border-color: transparent; background: transparent; padding: 4px 8px; color: var(--dim); }
-button.plain:hover { color: var(--text); background: var(--sunken); }
-button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-button.primary:hover { background: var(--accent-hover); }
-button.on { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent); }
-button:disabled { opacity: 0.32; cursor: default; }
-button:disabled:hover { background: transparent; }
-button:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 1px; }
+button:disabled { cursor: not-allowed; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  font: 560 13px/1 var(--font);
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  user-select: none;
+  flex: none;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+}
+.btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-line); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-sm { height: 26px; padding: 0 10px; font-size: 12px; border-radius: var(--radius-sm); }
+.btn-icon { width: 32px; padding: 0; }
+.btn-sm.btn-icon { width: 26px; }
+
+.btn-primary { background: var(--accent); color: #fff; box-shadow: 0 1px 2px rgba(26, 25, 23, 0.12); }
+.btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+.btn-primary:active:not(:disabled) { transform: translateY(0.5px); }
+
+.btn-secondary { background: var(--panel); color: var(--text); border-color: var(--line-strong); }
+.btn-secondary:hover:not(:disabled) { background: var(--sunken); border-color: var(--faint); }
+
+.btn-ghost { background: transparent; color: var(--dim); }
+.btn-ghost:hover:not(:disabled) { background: var(--sunken); color: var(--text); }
+
+.btn.is-active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-line); }
 
 input {
   font: inherit;
@@ -159,19 +185,12 @@ input {
   background: var(--panel);
   flex: none;
 }
-.cluster > button {
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  padding: 5px 8px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  color: var(--dim);
-}
-.cluster > button + button { box-shadow: inset 1px 0 0 var(--line); }
-.cluster > button:hover:not(:disabled) { background: var(--sunken); color: var(--text); }
-.cluster > button.on { background: var(--accent-soft); color: var(--accent); }
+/* Buttons inside a cluster share its border, so they lose their own. The
+   cluster is 32px overall, the same height as every other button. */
+.cluster > .btn { height: 30px; border: 0; border-radius: 0; box-shadow: none; }
+.cluster > .btn-icon { width: 32px; }
+.cluster > .btn + .btn { box-shadow: inset 1px 0 0 var(--line); }
+.cluster > .btn.is-active { border: 0; }
 .cluster .zoomlabel {
   padding: 0 8px;
   font-size: 11px;
@@ -201,14 +220,13 @@ input {
 .projects .new input {
   border-color: var(--line-strong);
   box-shadow: none;
-  height: 40px;
-  padding: 0 13px;
-  font-size: 13.5px;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
   background: var(--panel);
 }
 .projects .new input::placeholder { color: var(--faint); }
 .projects .new input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
-.projects .new button { height: 40px; padding: 0 18px; font-weight: 560; }
 
 .plist { display: flex; flex-direction: column; }
 .pitem {
@@ -379,10 +397,37 @@ input {
   justify-content: flex-end;
   cursor: pointer;
 }
-.td.pred { font-family: var(--mono); font-size: 11.5px; color: var(--dim); }
-.td.editable { border-radius: var(--radius-sm); }
-.td.editable:hover { box-shadow: inset 0 0 0 1px var(--line-strong); background: var(--panel); }
-.td.editing { padding: 0 4px; }
+.td.pred { font-family: var(--mono); font-size: 11.5px; }
+
+/* What you type is purple; what the engine works out (dates, float) is grey. */
+.td.dur.editable, .td.pred.editable { color: var(--accent); }
+
+/* Every editable cell answers to a single click anywhere in it. */
+.td.editable { cursor: pointer; border-radius: var(--radius-sm); }
+.td.editable:hover { background: var(--panel); box-shadow: inset 0 0 0 1px var(--line); }
+
+/* Editing: the cell itself becomes the field. Same padding, same font, so the
+   text does not move — only a ring appears. */
+.td.editing,
+.td.editing:hover {
+  background: var(--panel);
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+  cursor: text;
+}
+.td input {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font: inherit;
+  color: var(--text);
+  text-align: inherit;
+  caret-color: var(--accent);
+}
+.td.dur input { text-align: right; }
 
 .trow.sel .td.code { color: var(--accent); font-weight: 600; }
 .trow.critical .td.code { color: var(--crit); }
@@ -397,7 +442,7 @@ input {
 .rail.g5 { background: var(--grp-5); }
 
 .tname { display: flex; align-items: center; gap: 4px; min-width: 0; flex: 1; }
-.tname .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: text; }
+.tname .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tname .label.untitled { color: var(--faint); }
 .trow.summary .tname .label { font-weight: 620; letter-spacing: -0.008em; }
 .trow.summary.g0 .tname .label { color: var(--grp-0); }
@@ -425,7 +470,7 @@ input {
 /* A start date held by a drag (a start-no-earlier-than constraint). Marked on
    the cell it constrains; released from the date picker that opens there. */
 .td.date.pinned { color: var(--text); box-shadow: inset 2px 0 0 var(--accent); }
-.td.date.pinned.editable:hover { box-shadow: inset 2px 0 0 var(--accent), inset 0 0 0 1px var(--line-strong); }
+.td.date.pinned.editable:hover { box-shadow: inset 2px 0 0 var(--accent), inset 0 0 0 1px var(--line); }
 
 .addrow {
   display: flex;
@@ -501,6 +546,9 @@ input {
   paint-order: stroke fill;
 }
 .label-bg { fill: var(--bg); pointer-events: none; }
+/* On a selected row the plate takes the band's tint, so it masks lines without
+   showing as a pale box. Same mix as --accent-soft over the paper. */
+.label-bg.sel { fill: color-mix(in srgb, var(--accent) 9%, var(--bg)); }
 .bar-label.inside { fill: var(--text); stroke: none; }
 .bar-label.inside.on-fill { fill: #fff; }
 
@@ -584,7 +632,7 @@ input {
 .pop input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
 .pop .hint { color: var(--faint); font-size: 11px; margin-top: 8px; line-height: 1.45; }
 .pop .rel { display: flex; gap: 4px; }
-.pop .rel button { padding: 3px 9px; font-size: 11.5px; font-family: var(--mono); flex: 1; }
+.pop .rel .btn { flex: 1; font-family: var(--mono); }
 
 /* ---------- date picker ---------- */
 
@@ -596,7 +644,7 @@ input {
   margin: 10px 0 6px;
 }
 .datepick .dp-head .m { font-weight: 620; font-size: 12.5px; letter-spacing: -0.005em; }
-.datepick .dp-head button { padding: 2px 7px; line-height: 1; color: var(--dim); }
+
 .datepick .dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; }
 .datepick .dp-dow {
   font-size: 10px;
@@ -632,7 +680,7 @@ input {
   padding-top: 9px;
   border-top: 1px solid var(--line);
 }
-.datepick .dp-foot button { flex: 1; font-size: 12px; }
+.datepick .dp-foot .btn { flex: 1; }
 
 /* ---------- bar tooltip ---------- */
 
@@ -756,19 +804,14 @@ input {
 }
 
 .seg { display: flex; flex-wrap: wrap; gap: 4px; }
-.seg button {
-  padding: 4px 9px;
-  font-size: 12px;
-  color: var(--dim);
-  background: var(--bg);
-}
-.seg button.on { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent); font-weight: 560; }
+
 
 .swatches { display: flex; gap: 6px; flex-wrap: wrap; }
 .swatch {
   display: flex;
   gap: 1px;
   padding: 3px;
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
   background: var(--bg);
   overflow: hidden;
@@ -777,6 +820,7 @@ input {
 .swatch.wide span { width: 9px; border-radius: 0; }
 .swatch.wide span:first-child { border-radius: 3px 0 0 3px; }
 .swatch.wide span:last-child { border-radius: 0 3px 3px 0; }
+.swatch:hover { border-color: var(--faint); }
 .swatch.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-wash); }
 
 
@@ -810,11 +854,7 @@ input {
   flex: none;
   animation: editing-pulse 2s ease-in-out infinite;
 }
-.editing-banner button {
-  padding: 3px 10px;
-  font-size: 12px;
-  border-radius: 999px;
-}
+.editing-banner .btn { border-radius: 999px; }
 
 @keyframes editing-pulse {
   0%, 100% { opacity: 1; }

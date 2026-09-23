@@ -598,11 +598,8 @@ export const useStore = create<State>((set, get) => {
           if (!prev) continue;
 
           const target = d.tasks.find((t) => t.id === prev.id)!;
-          if (target.type !== 'summary') {
-            target.type = 'summary';
-            // A summary carries no logic of its own, so its links go with it.
-            d.links = d.links.filter((l) => l.fromId !== target.id && l.toId !== target.id);
-          }
+          // Its links stay: on a summary they are carried by the activities inside it.
+          if (target.type !== 'summary') target.type = 'summary';
           const self = d.tasks.find((t) => t.id === id)!;
           self.parentId = target.id;
           self.order =
@@ -669,13 +666,10 @@ export const useStore = create<State>((set, get) => {
           task.order = i;
         });
 
-        // Whatever you dropped into becomes a container, and loses its logic.
+        // Whatever you dropped into becomes a container; its links now apply to its contents.
         if (parentId) {
           const p = d.tasks.find((t) => t.id === parentId)!;
-          if (p.type !== 'summary') {
-            p.type = 'summary';
-            d.links = d.links.filter((l) => l.fromId !== p.id && l.toId !== p.id);
-          }
+          if (p.type !== 'summary') p.type = 'summary';
         }
         // A summary left with nothing under it is just a task again.
         for (const t of d.tasks) {
@@ -693,10 +687,6 @@ export const useStore = create<State>((set, get) => {
       const from = doc.tasks.find((t) => t.id === fromId);
       const to = doc.tasks.find((t) => t.id === toId);
       if (!from || !to) return;
-      if (from.type === 'summary' || to.type === 'summary') {
-        get().notify('Summary rows organise the schedule; they carry no logic.');
-        return;
-      }
       const existing = doc.links.find((l) => l.fromId === fromId && l.toId === toId);
       if (existing) {
         // Re-dragging an existing pair retypes it instead of refusing.

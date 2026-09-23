@@ -35,11 +35,65 @@ export function topoSort(ids: string[], links: Link[]): string[] | null {
   return order.length === ids.length ? order : null;
 }
 
-/** True if adding `candidate` would make the logic circular. */
+/** The activities a link endpoint stands for: itself, or everything under a summary. */
+export function leavesOf(tasks: Task[], id: string): string[] {
+  const task = tasks.find((t) => t.id === id);
+  if (!task) return [];
+  if (task.type !== 'summary') return [id];
+  return descendants(tasks, id)
+    .filter((t) => t.type !== 'summary')
+    .map((t) => t.id);
+}
+
+/**
+ * A link resolved to activities. Summaries are containers, so a link that
+ * touches one is carried by the activities inside it:
+ *
+ * - From a summary, the link reads the group's extent — its earliest start and
+ *   latest finish across `from` — so "after s2" means after s2's last activity.
+ * - Onto a summary, the link applies to every activity inside it, which is how
+ *   MS Project treats a predecessor on a summary task.
+ */
+export interface LeafEdge {
+  link: Link;
+  from: string[];
+  to: string;
+}
+
+export function resolveLinks(tasks: Task[], links: Link[]): LeafEdge[] {
+  const cache = new Map<string, string[]>();
+  const leaves = (id: string) => {
+    let hit = cache.get(id);
+    if (!hit) cache.set(id, (hit = leavesOf(tasks, id)));
+    return hit;
+  };
+  const out: LeafEdge[] = [];
+  for (const link of links) {
+    const from = leaves(link.fromId);
+    if (!from.length) continue;
+    for (const to of leaves(link.toId)) out.push({ link, from, to });
+  }
+  return out;
+}
+
+/** Flatten resolved edges into activity-to-activity links for ordering. */
+export function orderingLinks(edges: LeafEdge[]): Link[] {
+  return edges.flatMap((e) =>
+    e.from.map((f) => ({ ...e.link, id: `${e.link.id}:${f}:${e.to}`, fromId: f, toId: e.to })),
+  );
+}
+
+/**
+ * True if adding `candidate` would make the logic circular. A link between a
+ * summary and anything inside it is circular by construction: the group
+ * would have to finish before one of its own activities starts.
+ */
 export function wouldCycle(tasks: Task[], links: Link[], candidate: Link): boolean {
   if (candidate.fromId === candidate.toId) return true;
+  const edges = resolveLinks(tasks, [...links, candidate]);
+  if (edges.some((e) => e.from.includes(e.to))) return true;
   const ids = schedulable(tasks).map((t) => t.id);
-  return topoSort(ids, [...links, candidate]) === null;
+  return topoSort(ids, orderingLinks(edges)) === null;
 }
 
 /** Descendants of `id`, deepest-last, excluding `id` itself. */

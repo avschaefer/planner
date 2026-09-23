@@ -66,7 +66,7 @@ Priority: **P0** = the app is pointless without it · **P1** = needed before it'
 | R-015 | Automatic propagation | Changing a date, duration, link, or lag reschedules all affected successors immediately, with no explicit "schedule" action | P0 |
 | R-016 | Circular logic is impossible | A link that would create a cycle is rejected at creation with a clear message; the existing schedule is unchanged | P0 |
 | R-017 | Dragging a driven activity is meaningful | Dragging an activity that has predecessors applies a start-no-earlier-than constraint rather than silently breaking or ignoring the logic. The held start is marked on the Start cell and released from the date picker that opens there | P1 |
-| R-018 | Summary rows roll up, they don't schedule | A summary's dates are derived from its children; summaries cannot have predecessors or successors and do not appear in the dependency network | P1 |
+| R-018 | Summary rows roll up, they don't schedule | A summary's dates are derived from its children. A summary may be linked like any activity: a link from it reads the group's extent (FS from a summary starts the successor after its last activity); a link onto it applies to every activity inside. A link between a summary and its own contents is refused as circular | P1 |
 
 ### 5.3 Task table
 
