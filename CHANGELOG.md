@@ -63,6 +63,7 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Fixed
 
+- Deployed middleware and API functions crashed at load: `package.json` is `type: module`, so relative imports in `api/` and `proxy.ts` need `.js` extensions. `vercel dev` hid it. [R-061]
 - A save in flight when the tab closes now uses `keepalive`, so it still lands.
 - Shift and Cmd/Ctrl click in the table opened a cell editor instead of changing the
   selection; a modified click is now always a selection gesture. [R-053]
