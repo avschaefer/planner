@@ -1,15 +1,23 @@
-import type { Link, LinkType, Task } from './types';
+import type { Link, LinkType } from './types';
 
 const TYPES: LinkType[] = ['FS', 'SS', 'FF', 'SF'];
 
-/** 'A1010, A1020 SS+3, A1030 FS-2' */
-export function formatPredecessors(links: Link[], codeOf: (id: string) => string): string {
+/**
+ * MS Project's predecessor shorthand, against the outline row numbers produced
+ * by engine/ids.ts. '3', '3FS', '3FS+2d', '3-1d' and the reversed 'FS3' form
+ * all parse; output is MSP-canonical: '3', '4SS+2d', '7FS-1d'.
+ */
+export function formatPredecessors(links: Link[], rowIdOf: (id: string) => number | undefined): string {
   return links
     .map((l) => {
-      const type = l.type === 'FS' ? '' : ` ${l.type}`;
-      const lag = l.lag === 0 ? '' : `${l.lag > 0 ? '+' : ''}${l.lag}d`;
-      return `${codeOf(l.fromId)}${type}${lag && !type ? ' ' : ''}${lag}`;
+      const n = rowIdOf(l.fromId);
+      if (n === undefined) return null;
+      // MSP omits the type only when the whole relationship is the default.
+      const type = l.type === 'FS' && l.lag === 0 ? '' : l.type;
+      const lag = l.lag === 0 ? '' : `${l.lag > 0 ? '+' : '-'}${Math.abs(l.lag)}d`;
+      return `${n}${type}${lag}`;
     })
+    .filter((s): s is string => s !== null)
     .join(', ');
 }
 
@@ -24,30 +32,53 @@ export interface ParseResult {
   error: string | null;
 }
 
-/**
- * Accepts the shorthand a scheduler would type: a code, optionally a
- * relationship type, optionally a lag. 'A1020 SS+3', 'A1020SS+3', 'A1020 +2'.
+/*
+ * Either order: number-then-type (MSP's own form) or type-then-number (what
+ * people type when they think "finish-to-start on 3"). Spaces are allowed
+ * inside a token — '2 SS +1d' — and also separate tokens, so the scanner
+ * matches greedily and then checks that whatever sits between two matches is
+ * nothing but separators.
  */
-export function parsePredecessors(text: string, tasks: Task[]): ParseResult {
-  const byCode = new Map(tasks.map((t) => [t.code.toUpperCase(), t.id]));
+const TOKEN =
+  /(\d+)\s*(FS|SS|FF|SF)?(?:\s*([+-]\s*\d+)\s*(?:D(?:AY)?S?)?)?|(FS|SS|FF|SF)\s*(\d+)(?:\s*([+-]\s*\d+)\s*(?:D(?:AY)?S?)?)?/gi;
+
+const SEPARATORS = /^[,;\s]*$/;
+
+export function parsePredecessors(
+  text: string,
+  idForRow: (row: number) => string | undefined,
+): ParseResult {
   const links: ParsedPredecessor[] = [];
+  const src = text.toUpperCase();
+  const fail = (from: number): ParseResult => {
+    // Quote it back in the case they typed, minus the separator they got to it by.
+    const rest = text.slice(from).replace(/^[,;\s]+/, '');
+    const junk = (rest.split(/[,;]/)[0] || rest).trim();
+    return { links: [], error: `Can't read "${junk}" — try 3FS+2d` };
+  };
 
-  for (const raw of text.split(',')) {
-    const token = raw.trim();
-    if (!token) continue;
+  TOKEN.lastIndex = 0;
+  let cursor = 0;
+  let m: RegExpExecArray | null;
 
-    const m = /^([A-Za-z0-9_.-]+?)\s*(FS|SS|FF|SF)?\s*([+-]\s*\d+)?\s*d?$/i.exec(token);
-    if (!m) return { links: [], error: `Can't read "${token}"` };
+  while ((m = TOKEN.exec(src))) {
+    // Anything skipped over between tokens has to be punctuation, not content.
+    if (!SEPARATORS.test(src.slice(cursor, m.index))) return fail(cursor);
+    cursor = m.index + m[0].length;
 
-    const id = byCode.get(m[1].toUpperCase());
-    if (!id) return { links: [], error: `No activity "${m[1]}"` };
+    const row = Number(m[1] ?? m[5]);
+    const fromId = idForRow(row);
+    if (!fromId) return { links: [], error: `There is no activity ${row}` };
 
+    const lag = m[3] ?? m[6];
     links.push({
-      fromId: id,
-      type: (m[2]?.toUpperCase() as LinkType) ?? 'FS',
-      lag: m[3] ? Number(m[3].replace(/\s+/g, '')) : 0,
+      fromId,
+      type: ((m[2] ?? m[4]) as LinkType | undefined) ?? 'FS',
+      lag: lag ? Number(lag.replace(/\s+/g, '')) : 0,
     });
   }
+
+  if (!SEPARATORS.test(src.slice(cursor))) return fail(cursor);
   return { links, error: null };
 }
 
@@ -61,5 +92,5 @@ export function parseRelationship(text: string): { type: LinkType; lag: number }
 }
 
 export function formatRelationship(type: LinkType, lag: number): string {
-  return `${type}${lag === 0 ? '' : `${lag > 0 ? '+' : ''}${lag}d`}`;
+  return `${type}${lag === 0 ? '' : `${lag > 0 ? '+' : '-'}${Math.abs(lag)}d`}`;
 }

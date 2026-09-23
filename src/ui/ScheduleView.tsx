@@ -1,15 +1,15 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { formatWorkDay } from '../engine/calendar';
-import { useStore, ZOOM_STEPS } from '../store/store';
+import { primaryTaskId, useStore, ZOOM_STEPS } from '../store/store';
+import { groupHues } from './colors';
 import { Gantt } from './Gantt';
-import { Inspector } from './Inspector';
-import { LinkPopover } from './LinkPopover';
+import * as Icon from './icons';
 import { HEAD_H, ROW_H, visibleRows } from './rows';
 import { TaskTable, TaskTableHead, type Editing } from './TaskTable';
 import { majorTicks, minorTicks, buildTimeline, todayX } from './timeline';
 
-const MIN_LEFT = 260;
-const MAX_LEFT = 780;
+const MIN_LEFT = 460;
+const MAX_LEFT = 900;
 
 export function ScheduleView() {
   const doc = useStore((s) => s.doc)!;
@@ -19,7 +19,7 @@ export function ScheduleView() {
   const selection = useStore((s) => s.selection);
   const store = useStore();
 
-  const [leftWidth, setLeftWidth] = useState(420);
+  const [leftWidth, setLeftWidth] = useState(660);
   const [editing, setEditing] = useState<Editing | null>(null);
   const [showKeys, setShowKeys] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(900);
@@ -27,9 +27,9 @@ export function ScheduleView() {
   const ganttRef = useRef<HTMLDivElement>(null);
   const tableInnerRef = useRef<HTMLDivElement>(null);
   const headInnerRef = useRef<HTMLDivElement>(null);
-  const anchorRef = useRef<HTMLDivElement>(null);
 
   const rows = useMemo(() => visibleRows(doc.tasks), [doc.tasks]);
+  const hues = useMemo(() => groupHues(rows), [rows]);
   const tl = useMemo(
     () => buildTimeline(schedule, pxPerDay, viewportWidth),
     [schedule, pxPerDay, viewportWidth],
@@ -73,7 +73,8 @@ export function ScheduleView() {
       const el = e.target as HTMLElement;
       if (el?.tagName === 'INPUT' || el?.isContentEditable) return;
       const s = useStore.getState();
-      const sel = s.selection.taskId;
+      const sel = primaryTaskId(s.selection);
+      const all = s.selection.taskIds;
       const meta = e.metaKey || e.ctrlKey;
 
       if (meta && e.key.toLowerCase() === 'z') {
@@ -84,6 +85,11 @@ export function ScheduleView() {
       if (meta && e.key.toLowerCase() === 'y') {
         e.preventDefault();
         s.redo();
+        return;
+      }
+      if (meta && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        s.selectAll();
         return;
       }
 
@@ -98,30 +104,30 @@ export function ScheduleView() {
         case 'Backspace': {
           e.preventDefault();
           if (s.selection.linkId) s.deleteLink(s.selection.linkId);
-          else if (sel) s.deleteTask(sel);
+          else if (all.length) s.deleteTask(all);
           return;
         }
         case 'Escape':
-          s.select({ taskId: null, linkId: null });
+          s.clearSelection();
           return;
         case 'ArrowDown':
         case 'ArrowUp': {
           e.preventDefault();
           const i = rows.findIndex((r) => r.task.id === sel);
           const next = rows[Math.min(rows.length - 1, Math.max(0, i + (e.key === 'ArrowDown' ? 1 : -1)))];
-          if (next) s.select({ taskId: next.task.id, linkId: null });
+          if (next) s.selectTask(next.task.id, e.shiftKey ? 'range' : 'replace');
           return;
         }
         case 'ArrowRight':
-          if (e.altKey && sel) {
+          if (e.altKey && all.length) {
             e.preventDefault();
-            s.indent(sel);
+            s.indent(all);
           }
           return;
         case 'ArrowLeft':
-          if (e.altKey && sel) {
+          if (e.altKey && all.length) {
             e.preventDefault();
-            s.outdent(sel);
+            s.outdent(all);
           }
           return;
         case '=':
@@ -139,9 +145,11 @@ export function ScheduleView() {
           return;
       }
 
-      if (e.key.toLowerCase() === 'm' && sel) {
-        const t = s.doc?.tasks.find((x) => x.id === sel);
-        if (t && t.type !== 'summary') s.setType(sel, t.type === 'milestone' ? 'task' : 'milestone');
+      if (e.key.toLowerCase() === 'm' && all.length) {
+        const first = s.doc?.tasks.find((x) => x.id === sel);
+        if (first && first.type !== 'summary') {
+          s.setType(all, first.type === 'milestone' ? 'task' : 'milestone');
+        }
       }
     };
     window.addEventListener('keydown', onKey);
@@ -149,7 +157,7 @@ export function ScheduleView() {
   }, [rows]);
 
   function addTask() {
-    const id = store.addTask(useStore.getState().selection.taskId);
+    const id = store.addTask(primaryTaskId(useStore.getState().selection));
     if (id) setEditing({ taskId: id, field: 'name' });
   }
 
@@ -169,15 +177,13 @@ export function ScheduleView() {
   }, [dragging]);
 
   const finish = schedule.projectEnd > schedule.projectStart ? schedule.projectEnd - 1 : schedule.projectStart;
-  const criticalCount = [...schedule.byId.entries()].filter(
-    ([id, v]) => v.critical && doc.tasks.find((t) => t.id === id)?.type !== 'summary',
-  ).length;
+  const canIndent = selection.taskIds.length > 0;
 
   function exportJson() {
     const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `${doc.name.replace(/[^\w -]/g, '')|| 'schedule'}.json`;
+    a.download = `${doc.name.replace(/[^\w -]/g, '') || 'schedule'}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
   }
@@ -186,83 +192,71 @@ export function ScheduleView() {
     <>
       <div className="toolbar">
         <button className="plain" onClick={() => store.closeProject()} title="All schedules">
-          ←
+          <Icon.Back />
         </button>
         <span className="title">{doc.name}</span>
-        <span className="sep" />
-        <button onClick={addTask} title="Add activity (Enter)">
-          + Activity
+
+        <button className="primary" onClick={addTask} title="Add activity (Enter)">
+          Add activity
         </button>
-        <button
-          className="plain"
-          disabled={!selection.taskId}
-          onClick={() => selection.taskId && store.indent(selection.taskId)}
-          title="Indent (Alt+→)"
-        >
-          →|
-        </button>
-        <button
-          className="plain"
-          disabled={!selection.taskId}
-          onClick={() => selection.taskId && store.outdent(selection.taskId)}
-          title="Outdent (Alt+←)"
-        >
-          |←
-        </button>
-        <span className="sep" />
-        <button
-          className="plain"
-          onClick={() => store.undo()}
-          disabled={!store.undoStack.length}
-          title="Undo (Cmd/Ctrl+Z)"
-        >
-          ↶
-        </button>
-        <button
-          className="plain"
-          onClick={() => store.redo()}
-          disabled={!store.redoStack.length}
-          title="Redo (Shift+Cmd/Ctrl+Z)"
-        >
-          ↷
-        </button>
-        <span className="sep" />
-        <button className="plain" onClick={() => store.zoom(-1)} disabled={pxPerDay <= ZOOM_STEPS[0]}>
-          −
-        </button>
-        <span className="meta" style={{ width: 44, textAlign: 'center' }}>
-          {tl.scale}
-        </span>
-        <button
-          className="plain"
-          onClick={() => store.zoom(1)}
-          disabled={pxPerDay >= ZOOM_STEPS.at(-1)!}
-        >
-          +
-        </button>
-        <button
-          className={criticalOnly ? 'on' : 'plain'}
-          onClick={() => store.toggleCriticalOnly()}
-          title="Emphasise the critical path"
-        >
-          Critical path
-        </button>
+
+        <div className="cluster">
+          <button disabled={!canIndent} onClick={() => store.indent(selection.taskIds)} title="Indent (Alt+→)">
+            <Icon.Indent />
+          </button>
+          <button disabled={!canIndent} onClick={() => store.outdent(selection.taskIds)} title="Outdent (Alt+←)">
+            <Icon.Outdent />
+          </button>
+        </div>
+
+        <div className="cluster">
+          <button onClick={() => store.undo()} disabled={!store.undoStack.length} title="Undo (Cmd/Ctrl+Z)">
+            <Icon.Undo />
+          </button>
+          <button onClick={() => store.redo()} disabled={!store.redoStack.length} title="Redo (Shift+Cmd/Ctrl+Z)">
+            <Icon.Redo />
+          </button>
+        </div>
+
+        <div className="cluster">
+          <button onClick={() => store.zoom(-1)} disabled={pxPerDay <= ZOOM_STEPS[0]} title="Zoom out (−)">
+            <Icon.Minus />
+          </button>
+          <span className="zoomlabel">{tl.scale}</span>
+          <button onClick={() => store.zoom(1)} disabled={pxPerDay >= ZOOM_STEPS.at(-1)!} title="Zoom in (+)">
+            <Icon.Plus />
+          </button>
+        </div>
+
+        <div className="cluster">
+          <button
+            className={criticalOnly ? 'on' : ''}
+            onClick={() => store.toggleCriticalOnly()}
+            title="Emphasise the critical path"
+            style={{ padding: '0 10px', gap: 6, display: 'flex', alignItems: 'center' }}
+          >
+            <Icon.Critical /> Critical path
+          </button>
+        </div>
 
         <span className="spacer" />
         <span className="meta">
-          Finish <b>{formatWorkDay(finish)}</b> · {criticalCount} critical
+          {selection.taskIds.length > 1 && <>{selection.taskIds.length} selected · </>}
+          Finish <b>{formatWorkDay(finish)}</b>
         </span>
-        <span className="sep" />
-        <button className="plain" onClick={exportJson} title="Export JSON">
-          Export
-        </button>
-        <button className="plain" onClick={() => setShowKeys((v) => !v)} title="Keyboard shortcuts (?)">
-          ?
-        </button>
+
+        <div className="cluster">
+          <button onClick={exportJson} title="Export JSON">
+            <Icon.Export />
+          </button>
+          <button onClick={() => setShowKeys((v) => !v)} title="Keyboard shortcuts (?)">
+            <Icon.Keyboard />
+          </button>
+        </div>
       </div>
 
       <div className="schedule">
-        <div className="pane-left" style={{ width: leftWidth }} ref={anchorRef}>
+        <div className="pane-left" style={{ width: leftWidth }}>
           <div className="head">
             <TaskTableHead />
           </div>
@@ -270,6 +264,7 @@ export function ScheduleView() {
             <div ref={tableInnerRef}>
               <TaskTable
                 rows={rows}
+                hues={hues}
                 schedule={schedule}
                 editing={editing}
                 setEditing={setEditing}
@@ -296,6 +291,7 @@ export function ScheduleView() {
           <div className="gantt-viewport" ref={ganttRef}>
             <Gantt
               rows={rows}
+              hues={hues}
               schedule={schedule}
               links={doc.links}
               timeline={tl}
@@ -305,12 +301,6 @@ export function ScheduleView() {
         </div>
       </div>
 
-      {selection.taskId && anchorRef.current && (
-        <Inspector schedule={schedule} anchor={anchorRef.current.getBoundingClientRect()} />
-      )}
-      {selection.linkId && anchorRef.current && (
-        <LinkPopover anchor={anchorRef.current.getBoundingClientRect()} />
-      )}
       {showKeys && <Shortcuts onClose={() => setShowKeys(false)} />}
     </>
   );
@@ -321,9 +311,13 @@ function TimelineHead({ tl }: { tl: ReturnType<typeof buildTimeline> }) {
   const minor = minorTicks(tl);
   const showMinorLabels = tl.scale !== 'week' || tl.pxPerDay >= 7;
   const today = todayX(tl);
+  const BAND = 22;
 
   return (
     <svg width={tl.width} height={HEAD_H} className="gantt">
+      <rect className="tl-band" x={0} y={0} width={tl.width} height={BAND} />
+      <line className="tl-line" x1={0} x2={tl.width} y1={BAND - 0.5} y2={BAND - 0.5} shapeRendering="crispEdges" />
+
       {major.map((t, i) => (
         <g key={`M${i}`}>
           {t.x > 0 && (
@@ -336,57 +330,80 @@ function TimelineHead({ tl }: { tl: ReturnType<typeof buildTimeline> }) {
               shapeRendering="crispEdges"
             />
           )}
-          <text className="tl-major" x={t.x + 6} y={15}>
+          <text className="tl-month" x={t.x + 7} y={15}>
             {t.label}
           </text>
         </g>
       ))}
+
       {minor.map((t, i) => (
         <g key={`m${i}`}>
-          <line className="tl-line" x1={t.x} x2={t.x} y1={24} y2={HEAD_H} shapeRendering="crispEdges" />
+          <line className="tl-line" x1={t.x} x2={t.x} y1={BAND} y2={HEAD_H} shapeRendering="crispEdges" />
           {showMinorLabels && (
-            <text className="tl-minor" x={t.x + 3} y={38}>
+            <text className="tl-minor" x={t.x + 4} y={HEAD_H - 8}>
               {t.label}
             </text>
           )}
         </g>
       ))}
+
       {today !== null && (
-        <polygon className="g-today-cap" points={`${today - 4},${HEAD_H} ${today + 4},${HEAD_H} ${today},${HEAD_H - 6}`} />
+        <polygon
+          className="g-today-cap"
+          points={`${today - 4},${HEAD_H} ${today + 4},${HEAD_H} ${today},${HEAD_H - 6}`}
+        />
       )}
     </svg>
   );
 }
 
 function Shortcuts({ onClose }: { onClose(): void }) {
-  const keys: Array<[string, string]> = [
-    ['Enter', 'Add activity / edit name'],
-    ['Tab', 'Next field'],
-    ['↑ ↓', 'Move between activities'],
-    ['Alt + → ←', 'Indent / outdent'],
-    ['M', 'Toggle milestone'],
-    ['Delete', 'Delete activity or link'],
-    ['+ −', 'Zoom'],
-    ['Cmd/Ctrl + Z', 'Undo'],
-    ['⇧ Cmd/Ctrl + Z', 'Redo'],
-    ['Esc', 'Clear selection'],
+  const groups: Array<[string, Array<[string, string]>]> = [
+    [
+      'Editing',
+      [
+        ['Enter', 'Add activity · edit the name'],
+        ['Tab', 'Next field'],
+        ['M', 'Toggle milestone'],
+        ['Delete', 'Delete activity or link'],
+        ['Cmd/Ctrl + Z', 'Undo'],
+        ['⇧ Cmd/Ctrl + Z', 'Redo'],
+      ],
+    ],
+    [
+      'Selection',
+      [
+        ['↑ ↓', 'Move between activities'],
+        ['⇧ ↑ ↓ · ⇧ click', 'Extend the selection'],
+        ['Cmd/Ctrl + click', 'Add or remove one'],
+        ['Cmd/Ctrl + A', 'Select all'],
+        ['Drag in the chart', 'Rubber-band select'],
+        ['Alt + → ←', 'Indent / outdent'],
+        ['Esc', 'Clear the selection'],
+      ],
+    ],
+    ['View', [['+ −', 'Zoom the timeline']]],
   ];
+
   return (
-    <div
-      className="pop"
-      style={{ right: 12, top: 46, minWidth: 260 }}
-      onPointerLeave={onClose}
-    >
-      <h4>Keyboard</h4>
+    <div className="pop" style={{ right: 14, top: 54, minWidth: 300 }} onPointerLeave={onClose}>
       <div className="shortcuts">
-        {keys.map(([k, d]) => (
-          <div key={k} style={{ display: 'contents' }}>
-            <kbd>{k}</kbd>
-            <span className="d">{d}</span>
+        {groups.map(([title, keys]) => (
+          <div key={title} style={{ display: 'contents' }}>
+            <div className="sect">{title}</div>
+            {keys.map(([k, d]) => (
+              <div key={k} style={{ display: 'contents' }}>
+                <kbd>{k}</kbd>
+                <span className="d">{d}</span>
+              </div>
+            ))}
           </div>
         ))}
       </div>
-      <div className="hint">Drag a bar to move it · drag its edge to resize · drag the dot to link.</div>
+      <div className="hint">
+        Drag a bar to move it · drag an edge to resize · drag a dot onto any row to link.
+        Which dot you grab and which half of the target you drop on decides FS, SS, FF or SF.
+      </div>
     </div>
   );
 }

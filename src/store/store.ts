@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import {
   descendants,
   durationOf,
+  outline,
+  rowIds,
   scheduleProject,
   todayIso,
   toWorkDay,
@@ -27,9 +29,16 @@ const UNDO_LIMIT = 100;
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 export interface Selection {
-  taskId: string | null;
+  /** Ordered by outline position. The last one clicked is the primary. */
+  taskIds: string[];
   linkId: string | null;
+  /** Where a shift-click range extends from. */
+  anchorId: string | null;
 }
+
+export type SelectMode = 'replace' | 'toggle' | 'range';
+
+const EMPTY_SELECTION: Selection = { taskIds: [], linkId: null, anchorId: null };
 
 interface State {
   view: 'projects' | 'schedule';
@@ -55,16 +64,17 @@ interface State {
   addTask(afterId?: string | null): string | null;
   setName(id: string, name: string): void;
   setDuration(id: string, days: number): void;
-  setType(id: string, type: TaskType): void;
+  setType(ids: string | string[], type: TaskType): void;
   setStart(id: string, day: WorkDay): void;
   setFinish(id: string, day: WorkDay): void;
-  clearConstraint(id: string): void;
+  clearConstraint(ids: string | string[]): void;
   resizeFromStart(id: string, newStart: WorkDay): void;
-  moveBy(id: string, deltaDays: number): void;
-  deleteTask(id: string): void;
-  indent(id: string): void;
-  outdent(id: string): void;
+  moveBy(ids: string | string[], deltaDays: number): void;
+  deleteTask(ids: string | string[]): void;
+  indent(ids: string | string[]): void;
+  outdent(ids: string | string[]): void;
   toggleCollapsed(id: string): void;
+  reparent(ids: string[], parentId: string | null, index: number): void;
 
   addLink(fromId: string, toId: string, type?: LinkType, lag?: number): void;
   updateLink(id: string, patch: Partial<Pick<Link, 'type' | 'lag'>>): void;
@@ -74,6 +84,9 @@ interface State {
   undo(): void;
   redo(): void;
   select(sel: Partial<Selection>): void;
+  selectTask(id: string, mode?: SelectMode): void;
+  selectAll(): void;
+  clearSelection(): void;
   setPxPerDay(px: number): void;
   zoom(direction: 1 | -1): void;
   toggleCriticalOnly(): void;
@@ -88,16 +101,6 @@ function scheduleSave(doc: ProjectDoc) {
   saveTimer = setTimeout(() => void repo.save(doc), 200);
 }
 
-/** Next code in the A1000, A1010, A1020 … series. */
-function nextCode(tasks: Task[]): string {
-  const nums = tasks
-    .map((t) => /^A(\d+)$/.exec(t.code)?.[1])
-    .filter(Boolean)
-    .map(Number);
-  const next = nums.length ? Math.max(...nums) + 10 : 1000;
-  return `A${next}`;
-}
-
 function blankDoc(name: string): ProjectDoc {
   return {
     id: uid(),
@@ -109,13 +112,16 @@ function blankDoc(name: string): ProjectDoc {
   };
 }
 
+const asArray = (ids: string | string[]): string[] => (Array.isArray(ids) ? ids : [ids]);
+
 export const useStore = create<State>((set, get) => {
   /**
    * The one way the document changes: snapshot, mutate a clone, reschedule,
    * persist. Undo is a stack of whole documents (EDD D-008) — at this size that
-   * is a few kB and it is trivially correct for compound edits.
+   * is a few kB and it is trivially correct for compound edits. Everything
+   * plural goes through a single commit, so a multi-row edit is one undo step.
    */
-  function commit(mutate: (draft: ProjectDoc) => void | false) {
+  function commit(mutate: (draft: ProjectDoc) => void | boolean) {
     const { doc, undoStack } = get();
     if (!doc) return;
     const draft: ProjectDoc = structuredClone(doc);
@@ -135,9 +141,10 @@ export const useStore = create<State>((set, get) => {
     scheduleSave(doc);
   }
 
-  /** Where an activity currently sits, so a drag can be expressed as a delta. */
-  function startOf(id: string): WorkDay {
-    return get().schedule?.byId.get(id)?.start ?? 0;
+  function rowLabel(doc: ProjectDoc, id: string): string {
+    const n = rowIds(doc.tasks).get(id);
+    const name = doc.tasks.find((t) => t.id === id)?.name;
+    return name ? `${n} ${name}` : `activity ${n}`;
   }
 
   return {
@@ -147,7 +154,7 @@ export const useStore = create<State>((set, get) => {
     schedule: null,
     undoStack: [],
     redoStack: [],
-    selection: { taskId: null, linkId: null },
+    selection: EMPTY_SELECTION,
     pxPerDay: 16,
     criticalOnly: false,
     notice: null,
@@ -166,7 +173,7 @@ export const useStore = create<State>((set, get) => {
         view: 'schedule',
         undoStack: [],
         redoStack: [],
-        selection: { taskId: null, linkId: null },
+        selection: EMPTY_SELECTION,
         projects: await repo.list(),
       });
     },
@@ -180,12 +187,12 @@ export const useStore = create<State>((set, get) => {
         view: 'schedule',
         undoStack: [],
         redoStack: [],
-        selection: { taskId: null, linkId: null },
+        selection: EMPTY_SELECTION,
       });
     },
 
     closeProject() {
-      set({ view: 'projects', doc: null, schedule: null });
+      set({ view: 'projects', doc: null, schedule: null, selection: EMPTY_SELECTION });
       void repo.list().then((projects) => set({ projects }));
     },
 
@@ -209,6 +216,7 @@ export const useStore = create<State>((set, get) => {
         view: 'schedule',
         undoStack: [],
         redoStack: [],
+        selection: EMPTY_SELECTION,
         projects: await repo.list(),
       });
     },
@@ -228,7 +236,6 @@ export const useStore = create<State>((set, get) => {
         }
         d.tasks.push({
           id,
-          code: nextCode(d.tasks),
           name: '',
           type: 'task',
           duration: 1,
@@ -236,7 +243,7 @@ export const useStore = create<State>((set, get) => {
           order: baseOrder + 1,
         });
       });
-      set({ selection: { taskId: id, linkId: null } });
+      set({ selection: { taskIds: [id], linkId: null, anchorId: id } });
       return id;
     },
 
@@ -257,13 +264,19 @@ export const useStore = create<State>((set, get) => {
       });
     },
 
-    setType(id, type) {
+    setType(ids, type) {
+      const list = asArray(ids);
       commit((d) => {
-        const t = d.tasks.find((x) => x.id === id);
-        if (!t) return false;
-        t.type = type;
-        if (type === 'milestone') t.duration = 0;
-        if (type === 'task' && t.duration === 0) t.duration = 1;
+        let touched = false;
+        for (const id of list) {
+          const t = d.tasks.find((x) => x.id === id);
+          if (!t || t.type === 'summary') continue;
+          t.type = type;
+          if (type === 'milestone') t.duration = 0;
+          if (type === 'task' && t.duration === 0) t.duration = 1;
+          touched = true;
+        }
+        return touched || false;
       });
     },
 
@@ -276,10 +289,11 @@ export const useStore = create<State>((set, get) => {
     },
 
     setFinish(id, day) {
-      const { doc } = get();
+      const { doc, schedule } = get();
       const t = doc?.tasks.find((x) => x.id === id);
       if (!t) return;
-      const next = Math.max(t.type === 'milestone' ? 0 : 1, day - startOf(id) + 1);
+      const start = schedule?.byId.get(id)?.start ?? 0;
+      const next = Math.max(t.type === 'milestone' ? 0 : 1, day - start + 1);
       get().setDuration(id, next);
     },
 
@@ -296,11 +310,17 @@ export const useStore = create<State>((set, get) => {
       });
     },
 
-    clearConstraint(id) {
+    clearConstraint(ids) {
+      const list = asArray(ids);
       commit((d) => {
-        const t = d.tasks.find((x) => x.id === id);
-        if (!t?.constraint) return false;
-        delete t.constraint;
+        let touched = false;
+        for (const id of list) {
+          const t = d.tasks.find((x) => x.id === id);
+          if (!t?.constraint) continue;
+          delete t.constraint;
+          touched = true;
+        }
+        return touched || false;
       });
     },
 
@@ -308,22 +328,27 @@ export const useStore = create<State>((set, get) => {
      * Dragging. A summary moves its whole subtree by the same offset, which
      * preserves every relative position inside the group (EDD D-015). Anything
      * dragged gets a start-no-earlier-than constraint rather than having its
-     * logic broken (D-007).
+     * logic broken (D-007). Dragging one bar of a multi-row selection moves the
+     * whole selection by the same working-day offset, in one undo step.
      */
-    moveBy(id, deltaDays) {
+    moveBy(ids, deltaDays) {
       if (!deltaDays) return;
       const { doc, schedule } = get();
       if (!doc || !schedule) return;
-      const task = doc.tasks.find((t) => t.id === id);
-      if (!task) return;
 
-      const targets =
-        task.type === 'summary'
-          ? descendants(doc.tasks, id).filter((t) => t.type !== 'summary')
-          : [task];
-      if (!targets.length) return;
+      const targets = new Map<string, Task>();
+      for (const id of asArray(ids)) {
+        const task = doc.tasks.find((t) => t.id === id);
+        if (!task) continue;
+        const leaves =
+          task.type === 'summary'
+            ? descendants(doc.tasks, id).filter((t) => t.type !== 'summary')
+            : [task];
+        for (const t of leaves) targets.set(t.id, t);
+      }
+      if (!targets.size) return;
 
-      const starts = new Map(targets.map((t) => [t.id, schedule.byId.get(t.id)?.start ?? 0]));
+      const starts = new Map([...targets.keys()].map((id) => [id, schedule.byId.get(id)?.start ?? 0]));
       commit((d) => {
         for (const t of d.tasks) {
           if (!starts.has(t.id)) continue;
@@ -332,49 +357,74 @@ export const useStore = create<State>((set, get) => {
       });
     },
 
-    deleteTask(id) {
+    deleteTask(ids) {
+      const list = asArray(ids);
       commit((d) => {
-        const doomed = new Set([id, ...descendants(d.tasks, id).map((t) => t.id)]);
+        const doomed = new Set<string>();
+        for (const id of list) {
+          doomed.add(id);
+          for (const t of descendants(d.tasks, id)) doomed.add(t.id);
+        }
+        if (!doomed.size) return false;
         d.tasks = d.tasks.filter((t) => !doomed.has(t.id));
         d.links = d.links.filter((l) => !doomed.has(l.fromId) && !doomed.has(l.toId));
       });
-      set({ selection: { taskId: null, linkId: null } });
+      set({ selection: EMPTY_SELECTION });
     },
 
     /** The previous sibling becomes the parent, and becomes a summary. */
-    indent(id) {
+    indent(ids) {
+      const list = asArray(ids);
       commit((d) => {
-        const ordered = treeOrder(d.tasks);
-        const i = ordered.findIndex((t) => t.id === id);
-        const task = ordered[i];
-        if (!task) return false;
-        const prev = [...ordered.slice(0, i)].reverse().find((t) => t.parentId === task.parentId);
-        if (!prev) return false;
+        let touched = false;
+        // Outline order matters: each row looks for the sibling above it, which
+        // may itself have just been re-parented.
+        const order = new Map(treeOrder(d.tasks).map((t, i) => [t.id, i]));
+        for (const id of [...list].sort((a, b) => (order.get(a) ?? 0) - (order.get(b) ?? 0))) {
+          const ordered = treeOrder(d.tasks);
+          const i = ordered.findIndex((t) => t.id === id);
+          const task = ordered[i];
+          if (!task) continue;
+          const prev = [...ordered.slice(0, i)].reverse().find((t) => t.parentId === task.parentId);
+          if (!prev) continue;
 
-        const target = d.tasks.find((t) => t.id === prev.id)!;
-        if (target.type !== 'summary') {
-          target.type = 'summary';
-          // A summary carries no logic of its own, so its links go with it.
-          d.links = d.links.filter((l) => l.fromId !== target.id && l.toId !== target.id);
+          const target = d.tasks.find((t) => t.id === prev.id)!;
+          if (target.type !== 'summary') {
+            target.type = 'summary';
+            // A summary carries no logic of its own, so its links go with it.
+            d.links = d.links.filter((l) => l.fromId !== target.id && l.toId !== target.id);
+          }
+          const self = d.tasks.find((t) => t.id === id)!;
+          self.parentId = target.id;
+          self.order =
+            Math.max(-1, ...d.tasks.filter((t) => t.parentId === target.id).map((t) => t.order)) + 1;
+          touched = true;
         }
-        const self = d.tasks.find((t) => t.id === id)!;
-        self.parentId = target.id;
-        self.order = Math.max(-1, ...d.tasks.filter((t) => t.parentId === target.id).map((t) => t.order)) + 1;
+        return touched || false;
       });
     },
 
-    outdent(id) {
+    outdent(ids) {
+      const list = asArray(ids);
       commit((d) => {
-        const self = d.tasks.find((t) => t.id === id);
-        if (!self?.parentId) return false;
-        const parent = d.tasks.find((t) => t.id === self.parentId)!;
-        self.parentId = parent.parentId;
-        self.order = parent.order + 0.5;
-        normalizeOrder(d.tasks);
-        // A summary with nothing left under it is just a task again.
-        if (!d.tasks.some((t) => t.parentId === parent.id)) {
-          parent.type = parent.duration === 0 ? 'milestone' : 'task';
-        }
+        let touched = false;
+        const order = new Map(treeOrder(d.tasks).map((t, i) => [t.id, i]));
+        const sorted = [...list].sort((a, b) => (order.get(a) ?? 0) - (order.get(b) ?? 0));
+        sorted.forEach((id, n) => {
+          const self = d.tasks.find((t) => t.id === id);
+          if (!self?.parentId) return;
+          const parent = d.tasks.find((t) => t.id === self.parentId)!;
+          self.parentId = parent.parentId;
+          // Fractional offsets keep a multi-row outdent in its original order.
+          self.order = parent.order + (n + 1) / (sorted.length + 1);
+          normalizeOrder(d.tasks);
+          // A summary with nothing left under it is just a task again.
+          if (!d.tasks.some((t) => t.parentId === parent.id)) {
+            parent.type = parent.duration === 0 ? 'milestone' : 'task';
+          }
+          touched = true;
+        });
+        return touched || false;
       });
     },
 
@@ -383,6 +433,48 @@ export const useStore = create<State>((set, get) => {
         const t = d.tasks.find((x) => x.id === id);
         if (!t) return false;
         t.collapsed = !t.collapsed;
+      });
+    },
+
+    /**
+     * Drag-and-drop reordering: move `ids` (with their subtrees) to sit at
+     * `index` among `parentId`'s children. One commit, so a drag is one undo.
+     */
+    reparent(ids, parentId, index) {
+      commit((d) => {
+        const moving = new Set(ids);
+        for (const id of ids) for (const t of descendants(d.tasks, id)) moving.add(t.id);
+        if (parentId && moving.has(parentId)) return false;
+
+        const ordered = treeOrder(d.tasks);
+        // Only the topmost of each moved subtree is re-parented; children follow.
+        const block = ordered.filter((t) => ids.includes(t.id) && !ids.includes(t.parentId ?? ''));
+        if (!block.length) return false;
+        const blockIds = new Set(block.map((t) => t.id));
+
+        const sibs = ordered.filter((t) => t.parentId === parentId && !blockIds.has(t.id));
+        sibs.splice(Math.max(0, Math.min(index, sibs.length)), 0, ...block);
+        sibs.forEach((t, i) => {
+          const task = d.tasks.find((x) => x.id === t.id)!;
+          task.parentId = parentId;
+          task.order = i;
+        });
+
+        // Whatever you dropped into becomes a container, and loses its logic.
+        if (parentId) {
+          const p = d.tasks.find((t) => t.id === parentId)!;
+          if (p.type !== 'summary') {
+            p.type = 'summary';
+            d.links = d.links.filter((l) => l.fromId !== p.id && l.toId !== p.id);
+          }
+        }
+        // A summary left with nothing under it is just a task again.
+        for (const t of d.tasks) {
+          if (t.type === 'summary' && !d.tasks.some((x) => x.parentId === t.id)) {
+            t.type = t.duration === 0 ? 'milestone' : 'task';
+          }
+        }
+        normalizeOrder(d.tasks);
       });
     },
 
@@ -396,19 +488,22 @@ export const useStore = create<State>((set, get) => {
         get().notify('Summary rows organise the schedule; they carry no logic.');
         return;
       }
-      if (doc.links.some((l) => l.fromId === fromId && l.toId === toId)) {
-        get().notify(`${from.code} already drives ${to.code}.`);
+      const existing = doc.links.find((l) => l.fromId === fromId && l.toId === toId);
+      if (existing) {
+        // Re-dragging an existing pair retypes it instead of refusing.
+        get().updateLink(existing.id, { type, lag });
+        set({ selection: { taskIds: [], linkId: existing.id, anchorId: null } });
         return;
       }
       const candidate: Link = { id: uid(), fromId, toId, type, lag };
       if (wouldCycle(doc.tasks, doc.links, candidate)) {
-        get().notify(`That would make ${to.code} depend on itself.`);
+        get().notify(`That would make ${rowLabel(doc, toId)} depend on itself.`);
         return;
       }
       commit((d) => {
         d.links.push(candidate);
       });
-      set({ selection: { taskId: null, linkId: candidate.id } });
+      set({ selection: { taskIds: [], linkId: candidate.id, anchorId: null } });
     },
 
     updateLink(id, patch) {
@@ -423,7 +518,7 @@ export const useStore = create<State>((set, get) => {
       commit((d) => {
         d.links = d.links.filter((l) => l.id !== id);
       });
-      set({ selection: { taskId: null, linkId: null } });
+      set({ selection: EMPTY_SELECTION });
     },
 
     replacePredecessors(toId, next) {
@@ -434,8 +529,7 @@ export const useStore = create<State>((set, get) => {
       for (const p of next) {
         const candidate: Link = { id: uid(), fromId: p.fromId, toId, type: p.type, lag: p.lag };
         if (p.fromId === toId || wouldCycle(doc.tasks, [...kept, ...rebuilt], candidate)) {
-          const code = doc.tasks.find((t) => t.id === p.fromId)?.code ?? '?';
-          get().notify(`${code} would make the logic circular.`);
+          get().notify(`${rowLabel(doc, p.fromId)} would make the logic circular.`);
           return;
         }
         rebuilt.push(candidate);
@@ -463,6 +557,49 @@ export const useStore = create<State>((set, get) => {
 
     select(sel) {
       set({ selection: { ...get().selection, ...sel } });
+    },
+
+    /**
+     * One entry point for every way a row gets picked: plain click replaces,
+     * Cmd/Ctrl-click toggles, Shift-click extends from the anchor over the
+     * rows you can actually see.
+     */
+    selectTask(id, mode = 'replace') {
+      const { doc, selection } = get();
+      if (!doc) return;
+
+      if (mode === 'toggle') {
+        const has = selection.taskIds.includes(id);
+        const taskIds = has ? selection.taskIds.filter((x) => x !== id) : [...selection.taskIds, id];
+        set({ selection: { taskIds, linkId: null, anchorId: has ? selection.anchorId : id } });
+        return;
+      }
+
+      if (mode === 'range' && selection.anchorId) {
+        const visible = outline(doc.tasks).map((r) => r.task.id);
+        const a = visible.indexOf(selection.anchorId);
+        const b = visible.indexOf(id);
+        if (a >= 0 && b >= 0) {
+          const [lo, hi] = a < b ? [a, b] : [b, a];
+          set({
+            selection: { taskIds: visible.slice(lo, hi + 1), linkId: null, anchorId: selection.anchorId },
+          });
+          return;
+        }
+      }
+
+      set({ selection: { taskIds: [id], linkId: null, anchorId: id } });
+    },
+
+    selectAll() {
+      const { doc } = get();
+      if (!doc) return;
+      const visible = outline(doc.tasks).map((r) => r.task.id);
+      set({ selection: { taskIds: visible, linkId: null, anchorId: visible[0] ?? null } });
+    },
+
+    clearSelection() {
+      set({ selection: EMPTY_SELECTION });
     },
 
     setPxPerDay(px) {
@@ -501,6 +638,13 @@ function normalizeOrder(tasks: Task[]): void {
   for (const list of groups.values()) {
     list.sort((a, b) => a.order - b.order).forEach((t, i) => (t.order = i));
   }
+}
+
+/** The primary (most recently clicked) selected activity, or null. */
+export function primaryTaskId(selection: Selection): string | null {
+  return selection.anchorId && selection.taskIds.includes(selection.anchorId)
+    ? selection.anchorId
+    : (selection.taskIds.at(-1) ?? null);
 }
 
 export { durationOf, toWorkDay };

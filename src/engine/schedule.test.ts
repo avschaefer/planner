@@ -10,7 +10,6 @@ const D0 = toWorkDay(DATA_DATE);
 function task(id: string, duration: number, extra: Partial<Task> = {}): Task {
   return {
     id,
-    code: id,
     name: id,
     type: duration === 0 ? 'milestone' : 'task',
     duration,
@@ -172,7 +171,7 @@ describe('cycle rejection', () => {
 
 describe('summary rollup', () => {
   const tree = (): Task[] => [
-    { ...task('S', 0), type: 'summary', id: 'S', code: 'S', name: 'S' },
+    { ...task('S', 0), type: 'summary', id: 'S', name: 'S' },
     task('A', 3, { parentId: 'S', order: 0 }),
     task('B', 2, { parentId: 'S', order: 1 }),
   ];
@@ -189,8 +188,8 @@ describe('summary rollup', () => {
 
   it('rolls up through nesting', () => {
     const tasks: Task[] = [
-      { ...task('OUTER', 0), type: 'summary', id: 'OUTER', code: 'OUTER', name: 'OUTER' },
-      { ...task('INNER', 0), type: 'summary', id: 'INNER', code: 'INNER', name: 'INNER', parentId: 'OUTER' },
+      { ...task('OUTER', 0), type: 'summary', id: 'OUTER', name: 'OUTER' },
+      { ...task('INNER', 0), type: 'summary', id: 'INNER', name: 'INNER', parentId: 'OUTER' },
       task('A', 4, { parentId: 'INNER' }),
       task('B', 2, { parentId: 'OUTER', order: 1 }),
     ];

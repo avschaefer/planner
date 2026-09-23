@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { toWorkDay } from '../engine/calendar';
+import { rowIds } from '../engine/ids';
 import { scheduleProject } from '../engine/schedule';
 import { useStore } from './store';
 
@@ -38,14 +39,23 @@ function addActivities(specs: Array<[string, number]>) {
 }
 
 describe('store', () => {
-  it('adds activities with sequential codes and default duration', () => {
+  it('numbers activities 1, 2, 3 down the outline', () => {
     addActivities([
       ['A', 5],
       ['B', 3],
+      ['C', 2],
     ]);
-    const codes = s().doc!.tasks.map((t) => t.code);
-    expect(codes).toEqual(['A1000', 'A1010']);
+    const ids = rowIds(s().doc!.tasks);
+    expect([...ids.values()]).toEqual([1, 2, 3]);
     expect(startOf('A')).toBe(0);
+
+    // Indenting changes depth, never the numbering.
+    s().indent(codeId('B'));
+    expect(rowIds(s().doc!.tasks).get(codeId('C'))).toBe(3);
+
+    // Deleting a row renumbers everything below it, exactly as MSP does.
+    s().deleteTask(codeId('A'));
+    expect(rowIds(s().doc!.tasks).get(codeId('C'))).toBe(1);
   });
 
   it('propagates a link and reports the critical chain', () => {

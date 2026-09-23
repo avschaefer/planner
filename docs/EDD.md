@@ -1,6 +1,6 @@
 # EDD — Planner
 
-**Status:** Kickoff complete · **Last updated:** 2026-09-21
+**Status:** v2 interaction pass · **Last updated:** 2026-09-22
 
 ---
 
@@ -197,12 +197,15 @@ mechanism — no scroll listeners syncing two panes.
 
 ### 5.1 Drag model
 
-All three drags (move, resize, link) are one pointer-event state machine over the SVG:
+All four drags (move, resize, link, rubber-band select) are one pointer-event state machine over the SVG:
 `pointerdown` on a hit target → track in pixels → convert to working days → render a **preview**
 → `pointerup` commits one undoable action. Nothing touches the document until release, so the
 engine runs once per gesture, not once per frame.
 
-*Satisfies: R-032, R-033, R-034, R-040, R-041, R-050*
+Escape abandons a gesture without committing it. Row reordering is a fifth, separate machine in
+the table (`ui/reorder.ts`), because its target is an outline position, not a date.
+
+*Satisfies: R-032, R-033, R-034, R-040, R-041, R-050, R-053, R-054*
 
 ## 6. Design decisions
 
@@ -225,13 +228,18 @@ engine runs once per gesture, not once per frame.
 | D-015 | Dragging a summary applies one offset to every descendant leaf | Recomputing children from the summary's new extent | Applying a uniform working-day delta preserves every relative offset inside the group for free, including links between children. Deriving children from the parent's span is ambiguous the moment the group contains float |
 | D-016 | Gantt axis is a calendar with weekends shaded; the engine stays in working days | A compressed working-day axis with weekends removed | A working-day axis makes bars contiguous and the maths trivial, but month boundaries land at irregular pixel positions and the chart stops looking like a calendar. Converting at the drawing layer costs two small functions and keeps both properties |
 | D-017 | Drag previews commit on release, not on every frame | Applying each pointer move to the document | One engine run and one undo entry per gesture instead of dozens. The preview is computed through the same conversion the commit uses, so what is shown is what lands |
+| D-018 | Activity numbers are derived from outline position (`engine/ids.ts`), never stored | A stored `code` field per task | A number you can see in the table and type into a predecessor cell has to match the row in front of you. Deriving it makes that true by construction; a stored code drifts from the outline the first time a row moves. The cost is MSP's cost: inserting or deleting a row renumbers everything below it. Links are stored by internal id, so renumbering never changes the logic |
+| D-019 | Link drop targets are resolved arithmetically — row = `floor(y / ROW_H)`, end = which half of the bar — over the row's whole width | Hit-testing the bar element via `elementFromPoint` | The bar is a small target in a wide row, and at month zoom it can be two pixels wide. Making the row the target and inferring the relationship from which handle was grabbed and which half was released on turns "aim at a 3px dot" into "drag roughly there", and gets all four of FS/SS/FF/SF out of the mouse with no modal |
+| D-020 | Light theme only; no `prefers-color-scheme` block | Dual light/dark palettes | Two palettes double the cost of every colour decision — six group hues, critical red, float tails, weekend bands — for a tool used in one room. Decided with the user, 2026-09-22 |
+| D-021 | Outline drag-and-drop takes its depth from the pointer's x, bounded by the neighbouring rows | Drop-on-row-to-nest; indent only via Alt+arrow | Dragging sideways to choose the level is what every outliner does, and it makes "into and out of a summary" one gesture instead of two. Bounding the depth by the row above (+1) and the row below stops the drop landing somewhere the outline cannot represent |
+| D-022 | Popovers that open from the task table are portalled to `document.body` | Rendering them in place | The table body is translated to follow the Gantt's scroll, and a CSS transform makes `position: fixed` resolve against the transformed element instead of the viewport. The portal is the fix; the alternative is re-deriving offsets on every scroll |
 
 ## 7. Traceability
 
 | Req | Design section |
 |---|---|
 | R-001 | §5 `ProjectList`, §3 `ProjectDoc` |
-| R-002 | §3 `Task` |
+| R-002 | §3 `Task`, `engine/ids.ts`, D-018 |
 | R-003 | §3 `Task.parentId/order/collapsed`, §4.4, D-006 |
 | R-004 | §3 `Task.type`, §5 `GanttCanvas` |
 | R-005 | §3.1, D-003, D-014 |

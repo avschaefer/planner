@@ -14,7 +14,7 @@ export type LinkType = 'FS' | 'SS' | 'FF' | 'SF';
 
 export interface Task {
   id: string;
-  code: string;
+  /** Human-visible numbering is derived from outline position — see engine/ids.ts. */
   name: string;
   type: TaskType;
   /** Working days. 0 for a milestone. Ignored for a summary (derived). */

@@ -97,3 +97,42 @@ export function depthOf(tasks: Task[], id: string): number {
   }
   return depth;
 }
+
+export interface OutlineRow {
+  task: Task;
+  depth: number;
+  /** The nearest top-level summary this row belongs to, if any. Drives grouping colour. */
+  groupId: string | null;
+}
+
+/**
+ * The single ordered list the table and the Gantt both render, and the same
+ * order `rowIds` numbers. `visible` drops rows hidden inside a collapsed
+ * summary; the numbering does not, so a collapsed group leaves a gap.
+ */
+export function outline(tasks: Task[], visible = true): OutlineRow[] {
+  const byId = new Map(tasks.map((t) => [t.id, t]));
+  const chain = (t: Task): Task[] => {
+    const out: Task[] = [];
+    let p = t.parentId ? byId.get(t.parentId) : undefined;
+    while (p) {
+      out.unshift(p);
+      p = p.parentId ? byId.get(p.parentId) : undefined;
+    }
+    return out;
+  };
+
+  return treeOrder(tasks)
+    .map((task) => {
+      const ancestors = chain(task);
+      const root = ancestors[0] ?? (task.type === 'summary' ? task : null);
+      return {
+        task,
+        depth: ancestors.length,
+        groupId: root && root.type === 'summary' ? root.id : null,
+        hidden: ancestors.some((a) => a.collapsed),
+      };
+    })
+    .filter((r) => !visible || !r.hidden)
+    .map(({ task, depth, groupId }) => ({ task, depth, groupId }));
+}

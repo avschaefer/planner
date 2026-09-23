@@ -19,10 +19,17 @@ npm run dev          # http://localhost:5173
 - **Working-day calendar.** Mon–Fri. A 5-day activity starting Friday finishes the
   following Thursday.
 - **All four relationship types** — FS, SS, FF, SF — with positive and negative lag.
-- **Direct manipulation.** Drag a bar to move it, drag an edge to resize, drag from a bar's
-  end onto another to link them. Dragging an activity that has predecessors pins it with a
-  visible, removable constraint rather than silently breaking the logic.
-- **Summary rows** that roll up their children and move their whole subtree together.
+- **Direct manipulation.** Drag a bar to move it, drag an edge to resize, drag a handle from
+  either end of a bar onto any part of another row to link them — which handle you grab and
+  which half you drop on decides FS, SS, FF or SF. Dragging an activity that has predecessors
+  pins it with a visible, removable constraint rather than silently breaking the logic.
+- **MS Project shorthand.** Activities are numbered 1, 2, 3 down the outline, and predecessors
+  are typed the way a scheduler types them: `3`, `3FS+2d`, `4SS-1d`, `FS3`.
+- **Date pickers** on Start and Finish that still accept typing.
+- **Summary rows** that roll up their children, move their whole subtree together, and colour
+  their group through the chart and the table.
+- **Multi-select** by rubber band or gutter sweep; delete, indent, and drag the whole set at once.
+- **Drag rows** by the grip to reorder them, and sideways to move them in and out of summaries.
 - **Milestones**, undo/redo, keyboard-first editing, day/week/month zoom.
 
 Deliberately not built: resources, cost, earned value, WBS/OBS, progress tracking, baselines,
