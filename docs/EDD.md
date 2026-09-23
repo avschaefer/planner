@@ -1,6 +1,6 @@
 # EDD — Planner
 
-**Status:** v3 presentation pass · **Last updated:** 2026-09-23
+**Status:** v4 shared backend · **Last updated:** 2026-09-23
 
 ---
 
@@ -233,6 +233,11 @@ the table (`ui/reorder.ts`), because its target is an outline position, not a da
 | D-020 | Light theme only; no `prefers-color-scheme` block | Dual light/dark palettes | Two palettes double the cost of every colour decision — six group hues, critical red, float tails, weekend bands — for a tool used in one room. Decided with the user, 2026-09-22 |
 | D-021 | Outline drag-and-drop takes its depth from the pointer's x, bounded by the neighbouring rows | Drop-on-row-to-nest; indent only via Alt+arrow | Dragging sideways to choose the level is what every outliner does, and it makes "into and out of a summary" one gesture instead of two. Bounding the depth by the row above (+1) and the row below stops the drop landing somewhere the outline cannot represent |
 | D-022a | A modified click (Shift / Cmd / Ctrl) in the table is always a selection, never a cell edit | Letting the editor open and the selection change together | Every cell in a dense table opens an editor on click, so the two gestures collide. Selection wins under a modifier because that is the only thing a modified click means anywhere else. Plain clicks keep spreadsheet behaviour: press, drag across rows to sweep a range, or release in place to edit |
+| D-026 | Vercel Routing Middleware + `api/` functions on the existing Vite SPA | Migrating to Next.js for `middleware.ts` | The brief asked for a Next.js middleware gate, but this is a Vite SPA and Next.js would restructure the file layout the same brief rules out. Vercel's Routing Middleware is framework-agnostic from a root `middleware.ts`, so the gate covers every route — including the built bundle — with no change to the app |
+| D-027 | One row per project, `tasks` and `links` as `jsonb` | Normalised `tasks` and `links` tables | The app's unit of persistence has always been the whole document: `commit()` clones, mutates, reschedules and writes it, and undo is a stack of whole documents (D-008). Normalising would mean rewriting the store, not just the schema. It also makes live sync trivial — one row change carries the entire new state, so there is nothing to merge and "no conflict resolution" is a design rather than a gap. The cost is no server-side querying inside a schedule, which nothing needs |
+| D-028 | Anon key is read-only by RLS; every write goes through a service-role function | Anon key with insert/update rights; or minting per-session Supabase JWTs | The middleware means the anon key is never served to someone who has not unlocked, so read access is already behind the passcode. Making writes server-only means even a leaked key cannot corrupt a schedule — the realistic failure is someone keeping read access until the key is rotated. Minting short-lived JWTs would close that too, and is the upgrade path if access widens; it was not worth the extra moving part for one passcode and a handful of people |
+| D-029 | Soft editor lock, enforced in `commit()` and again on write | A hard lock; last-write-wins with no lock at all | `commit()` is the single choke point for every document mutation, so read-only is one guard covering drags, typing and undo alike. Checking again in `api/save.ts` means the rule holds even if the UI is bypassed. The lock goes stale after 90s of silence because a closed laptop never releases one, and anyone can take it over — the schedule matters more than the lock |
+| D-030 | IndexedDB stays as the fallback when Supabase is not configured | Deleting `idbRepo` outright | Not offline support: there is no queue and no sync. It is what lets `npm run dev` and the 21-test browser suite run with no project behind them, and it is three lines because both sides already implement `ScheduleRepo` |
 | D-023 | Presentation settings live in `localStorage`, outside the document and outside undo | Storing them on the `ProjectDoc` | How a chart is drawn is a property of the person reading it, not of the schedule. Keeping them out of the document means changing a colour is not an undoable edit, does not dirty the save, and does not have to survive JSON round-trips. The cost: the formatting does not travel with an exported project |
 | D-024 | PNG export clones the live SVG and inlines the stylesheet | Re-rendering the chart to a canvas; a server-side renderer | The chart is already SVG and already styled by class, so a clone plus the page's own CSS rules is the whole job, and what exports is by construction what is on screen. A second canvas renderer would be a second implementation of the chart to keep in sync. `:root` custom properties survive because in a standalone SVG the `<svg>` element is the root |
 | D-025 | SVG text labels are measured with a 2D canvas context and given a backing plate | A stroke halo (`paint-order`) | A stroke halo only covers where there is ink, so a dependency line crossing a label shows through the spaces between words and reads as a row of stray dots. A measured rectangle covers the whole label. The measurement is cached; the same names redraw on every frame of a drag |
@@ -247,6 +252,11 @@ the table (`ui/reorder.ts`), because its target is an outline position, not a da
 | R-002a | `engine/ids.ts`, D-018 |
 | R-057 | `ui/settings.ts`, `ui/Settings.tsx`, D-023 |
 | R-058 | `ui/exportPng.ts`, D-024 |
+| R-061 | `middleware.ts`, `api/_session.ts`, `api/unlock.ts`, D-026 |
+| R-062 | `supabase/migrations/0001_init.sql`, `persist/supabaseRepo.ts`, §3.1, D-027 |
+| R-063 | `persist/realtime.ts`, `store.ts` `watch()`, D-027 |
+| R-064 | `persist/lock.ts`, `api/claim.ts`, `store.ts` `commit()`, D-029 |
+| R-065 | `supabase/migrations/0001_init.sql` RLS, `api/save.ts`, D-028 |
 | R-003 | §3 `Task.parentId/order/collapsed`, §4.4, D-006 |
 | R-004 | §3 `Task.type`, §5 `GanttCanvas` |
 | R-005 | §3.1, D-003, D-014 |
@@ -312,6 +322,8 @@ disagree, the app is wrong.
 | Drag interactions feel mediocre despite correct logic | The product's whole premise fails | Preview-then-commit model (§5.1) keeps gesture rendering independent of the engine, so feel can be tuned without touching correctness |
 | Local-only storage loses a real schedule | Actual work lost | Ship R-006 export before the tool is trusted with a real program |
 | The eventual Supabase migration turns out to need a different document shape | D-014's interface doesn't actually contain the change | `ProjectDoc` is already a single serializable document with stable uuids — it maps to one row or to normalized tables without restructuring |
-| **Concurrent editing (PRD Q-6) is the stated destination** | Whole-document saves and snapshot undo (D-008, D-009) do not survive two simultaneous editors | One-editor-at-a-time is reachable from here: add a lock and keep everything else. True concurrent editing needs per-field operations and conflict resolution, and would be a rewrite of the store, not of the engine. Decide which one is actually wanted before the Supabase schema is written |
+| ~~Concurrent editing (PRD Q-6)~~ **Resolved 2026-09-23** | — | One editor at a time shipped as D-029: a soft lock plus the existing whole-document save, exactly as this row predicted. True concurrent editing is still a rewrite of the store and is not planned |
+| A viewer's screen is replaced mid-read when the editor saves | Mildly disorienting; no data loss, since viewers cannot write | Accepted, and explicitly out of scope per the brief. The banner tells a blocked editor why their keystrokes do nothing; a passive viewer simply sees the bars move |
+| The shared passcode leaks | Anyone with the link can read every schedule, and could take over editing | Rotate `APP_PASSCODE`, and `SESSION_SECRET` to sign out existing sessions. Writes still cannot bypass the service-role functions. Real accounts are the answer if the audience ever widens beyond a team that trusts each other |
 | TypeScript 7 is a new major with a rewritten compiler | Tooling friction | Pin the exact version; the fallback to 6.x is mechanical |
 | Dependency arrows tangle before 30 activities | R-035 unmet, Gantt reads as spaghetti | Lane-offset routing from the start; do not defer routing to "polish" |

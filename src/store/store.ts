@@ -21,13 +21,48 @@ import type {
   WorkDay,
 } from '../engine/types';
 import { idbRepo } from '../persist/idbRepo';
+import { subscribeProject, subscribeProjects } from '../persist/realtime';
 import type { ScheduleRepo } from '../persist/repo';
+import {
+  claimEditor,
+  createSupabaseRepo,
+  isShared,
+  lockIsFree,
+  readEditor,
+} from '../persist/supabaseRepo';
 import { applyTheme, loadSettings, saveSettings, type Settings } from '../ui/settings';
 
-const repo: ScheduleRepo = idbRepo;
-const UNDO_LIMIT = 100;
-
 const uid = () => Math.random().toString(36).slice(2, 10);
+
+/**
+ * Which browser tab this is. Used to recognise our own writes coming back over
+ * Realtime, and to hold the editor lock. Per tab, not per person — two tabs are
+ * two editors, which is the honest reading of "one editor at a time".
+ */
+export const clientId = (() => {
+  const KEY = 'planner.clientId';
+  try {
+    const existing = sessionStorage.getItem(KEY);
+    if (existing) return existing;
+    const fresh = `c_${uid()}${uid()}`;
+    sessionStorage.setItem(KEY, fresh);
+    return fresh;
+  } catch {
+    return `c_${uid()}${uid()}`;
+  }
+})();
+
+/**
+ * The shared database when this build is configured for one, local IndexedDB
+ * when it is not (EDD D-014). The fallback is not offline support — there is no
+ * queue and no sync — it is what lets `npm run dev` and the browser tests run
+ * without a project behind them.
+ */
+const repo: ScheduleRepo = isShared ? createSupabaseRepo(() => clientId) : idbRepo;
+
+const UNDO_LIMIT = 100;
+/** How often the editor lock is refreshed while someone is editing. */
+const HEARTBEAT_MS = 30_000;
 
 export interface Selection {
   /** Ordered by outline position. The last one clicked is the primary. */
@@ -54,6 +89,12 @@ interface State {
   notice: string | null;
   loading: boolean;
   settings: Settings;
+  /** True when someone else holds the editor lock. Every edit is refused. */
+  readOnly: boolean;
+  /** Who holds it, when that is not us. */
+  editorId: string | null;
+  /** False for a local-only build; the editor banner only matters when shared. */
+  shared: boolean;
 
   init(): Promise<void>;
   createProject(name: string): Promise<void>;
@@ -93,6 +134,7 @@ interface State {
   zoom(direction: 1 | -1): void;
   toggleCriticalOnly(): void;
   updateSettings(patch: Partial<Settings>): void;
+  takeOverEditing(): Promise<void>;
   notify(message: string | null): void;
 }
 
@@ -100,6 +142,8 @@ export const ZOOM_STEPS = [2, 3, 4.5, 7, 11, 16, 24, 34];
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let pending: ProjectDoc | null = null;
+/** Set by the store below, so a rejected write can reach it. */
+let onSaveError: ((error: Error & { status?: number; editorId?: string }) => void) | null = null;
 
 function scheduleSave(doc: ProjectDoc) {
   pending = doc;
@@ -113,7 +157,7 @@ function flushSave() {
   saveTimer = null;
   const doc = pending;
   pending = null;
-  if (doc) void repo.save(doc);
+  if (doc) void repo.save(doc).catch((error: Error) => onSaveError?.(error));
 }
 
 /* An edit made in the last 200ms would otherwise be lost to a reload or a
@@ -140,15 +184,118 @@ function blankDoc(name: string): ProjectDoc {
 const asArray = (ids: string | string[]): string[] => (Array.isArray(ids) ? ids : [ids]);
 
 export const useStore = create<State>((set, get) => {
+  /* ---------------- live sync and the soft editor lock (PRD Q-6) ----------
+     One editor at a time, claimed on the first edit and kept alive by a
+     heartbeat. Nothing here runs in a local-only build. */
+
+  let detachProject: (() => void) | null = null;
+  let detachList: (() => void) | null = null;
+  let heartbeat: ReturnType<typeof setInterval> | null = null;
+  let holdsLock = false;
+  let claiming: Promise<boolean> | null = null;
+
+  function releaseLocally() {
+    holdsLock = false;
+    claiming = null;
+    if (heartbeat) clearInterval(heartbeat);
+    heartbeat = null;
+  }
+
+  function lose(editorId: string | null) {
+    releaseLocally();
+    set({ readOnly: true, editorId });
+  }
+
+  /** Pull the row back down after a refused write, so the screen tells the truth. */
+  async function resync(): Promise<void> {
+    const { doc } = get();
+    if (!doc || !isShared) return;
+    const fresh = await repo.load(doc.id).catch(() => undefined);
+    if (fresh && get().doc?.id === fresh.id) set({ doc: fresh, schedule: scheduleProject(fresh) });
+  }
+
+  /**
+   * Take the editor lock, or keep it alive. Called on every commit; cheap
+   * after the first because the lock is already held.
+   */
+  function ensureEditor(force = false): Promise<boolean> {
+    const { doc } = get();
+    if (!isShared || !doc) return Promise.resolve(true);
+    if (holdsLock && !force) return Promise.resolve(true);
+    if (claiming && !force) return claiming;
+
+    const attempt = claimEditor(doc.id, clientId, force)
+      .then(({ granted, editorId }) => {
+        claiming = null;
+        if (!granted) {
+          lose(editorId);
+          get().notify('Someone else is editing this schedule.');
+          void resync();
+          return false;
+        }
+        holdsLock = true;
+        set({ readOnly: false, editorId: clientId });
+        heartbeat ??= setInterval(() => {
+          const open = get().doc;
+          if (open) void claimEditor(open.id, clientId).catch(() => {});
+        }, HEARTBEAT_MS);
+        return true;
+      })
+      .catch(() => {
+        // A flaky network must not lock someone out of their own schedule.
+        claiming = null;
+        return true;
+      });
+
+    claiming = attempt;
+    return attempt;
+  }
+
+  /** Live updates for the open schedule. The whole document arrives at once. */
+  function watch(id: string) {
+    detachProject?.();
+    detachProject = subscribeProject(id, (change) => {
+      if (change.clientId === clientId) return; // our own write, echoed back
+      const free = lockIsFree(change.editorId, change.editorSeen, clientId);
+      if (!free) releaseLocally();
+      set({
+        doc: change.doc,
+        schedule: scheduleProject(change.doc),
+        editorId: change.editorId,
+        readOnly: !free,
+      });
+    });
+  }
+
+  onSaveError = (error) => {
+    if (error.status === 409) {
+      lose(error.editorId ?? null);
+      get().notify('Someone else is editing this schedule. Your last change was not saved.');
+      void resync();
+    } else if (error.status === 401) {
+      // The session expired behind the passcode gate; a reload shows the unlock page.
+      get().notify('Your session expired. Reload to sign back in.');
+    } else {
+      get().notify(`Could not save: ${error.message}`);
+    }
+  };
+
   /**
    * The one way the document changes: snapshot, mutate a clone, reschedule,
    * persist. Undo is a stack of whole documents (EDD D-008) — at this size that
    * is a few kB and it is trivially correct for compound edits. Everything
    * plural goes through a single commit, so a multi-row edit is one undo step.
+   *
+   * It is also the only gate read-only mode needs: every edit in the app, from
+   * a drag to an undo, arrives here.
    */
   function commit(mutate: (draft: ProjectDoc) => void | boolean) {
-    const { doc, undoStack } = get();
+    const { doc, undoStack, readOnly } = get();
     if (!doc) return;
+    if (readOnly) {
+      get().notify('Someone else is editing. Take over to make changes.');
+      return;
+    }
     const draft: ProjectDoc = structuredClone(doc);
     if (mutate(draft) === false) return;
     draft.updatedAt = new Date().toISOString();
@@ -159,11 +306,13 @@ export const useStore = create<State>((set, get) => {
       redoStack: [],
     });
     scheduleSave(draft);
+    void ensureEditor();
   }
 
   function apply(doc: ProjectDoc) {
     set({ doc, schedule: scheduleProject(doc) });
     scheduleSave(doc);
+    void ensureEditor();
   }
 
   function rowLabel(doc: ProjectDoc, id: string): string {
@@ -185,9 +334,16 @@ export const useStore = create<State>((set, get) => {
     notice: null,
     loading: true,
     settings: loadSettings(),
+    readOnly: false,
+    editorId: null,
+    shared: isShared,
 
     async init() {
       set({ projects: await repo.list(), loading: false });
+      // A schedule someone else creates or deletes just appears, or goes.
+      detachList ??= subscribeProjects(() => {
+        if (get().view === 'projects') void repo.list().then((projects) => set({ projects }));
+      });
     },
 
     async createProject(name) {
@@ -200,13 +356,24 @@ export const useStore = create<State>((set, get) => {
         undoStack: [],
         redoStack: [],
         selection: EMPTY_SELECTION,
+        readOnly: false,
+        editorId: null,
         projects: await repo.list(),
       });
+      watch(doc.id);
     },
 
     async openProject(id) {
       const doc = await repo.load(id);
       if (!doc) return;
+      releaseLocally();
+      // Opening is not editing: the lock is claimed on the first change, so
+      // twenty people can watch without any of them taking it.
+      const { editorId, editorSeen } = await readEditor(id).catch(() => ({
+        editorId: null,
+        editorSeen: null,
+      }));
+      const free = lockIsFree(editorId, editorSeen, clientId);
       set({
         doc,
         schedule: scheduleProject(doc),
@@ -214,11 +381,24 @@ export const useStore = create<State>((set, get) => {
         undoStack: [],
         redoStack: [],
         selection: EMPTY_SELECTION,
+        editorId: free ? null : editorId,
+        readOnly: !free,
       });
+      watch(id);
     },
 
     closeProject() {
-      set({ view: 'projects', doc: null, schedule: null, selection: EMPTY_SELECTION });
+      detachProject?.();
+      detachProject = null;
+      releaseLocally();
+      set({
+        view: 'projects',
+        doc: null,
+        schedule: null,
+        selection: EMPTY_SELECTION,
+        readOnly: false,
+        editorId: null,
+      });
       void repo.list().then((projects) => set({ projects }));
     },
 
@@ -243,8 +423,11 @@ export const useStore = create<State>((set, get) => {
         undoStack: [],
         redoStack: [],
         selection: EMPTY_SELECTION,
+        readOnly: false,
+        editorId: null,
         projects: await repo.list(),
       });
+      watch(fresh.id);
     },
 
     addTask(afterId) {
@@ -652,6 +835,12 @@ export const useStore = create<State>((set, get) => {
       set({ settings });
       applyTheme(settings);
       saveSettings(settings);
+    },
+
+    /** The take-over button: the schedule matters more than the lock. */
+    async takeOverEditing() {
+      const granted = await ensureEditor(true);
+      if (granted) get().notify('You are editing now.');
     },
 
     notify(message) {

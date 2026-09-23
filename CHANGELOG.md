@@ -7,6 +7,18 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Added
 
+- **Shared backend.** Schedules live in Supabase Postgres, one row per project mirroring
+  `ProjectDoc`, reached through a new `ScheduleRepo` implementation. No call site changed. [R-062]
+- **Passcode gate.** One shared passcode, checked in Vercel Routing Middleware ahead of every
+  route including the built bundle, and again in each API function. Signed HttpOnly session
+  cookie; no accounts, no roles. [R-061] [R-065]
+- **Live viewing.** A Supabase Realtime subscription on the open schedule's row; a change made
+  anywhere appears everywhere in about a second. [R-063]
+- **One editor at a time.** A soft lock claimed on the first edit and kept by a heartbeat,
+  enforced in `commit()` and again server-side on write. Everyone else sees a read-only banner
+  with a take-over button. Abandoned 90s after its holder goes quiet. [R-064]
+- `vercel.json`, `.env.example` and `supabase/migrations/0001_init.sql`.
+
 - Settings modal: accent / summary-group / critical-path palettes, activity and summary bar
   shape and name position (left, inside, right, none), milestone shape, label and side, the
   date format used everywhere, and a float-tail switch. Persists across sessions. [R-057]
@@ -51,6 +63,7 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Fixed
 
+- A save in flight when the tab closes now uses `keepalive`, so it still lands.
 - Shift and Cmd/Ctrl click in the table opened a cell editor instead of changing the
   selection; a modified click is now always a selection gesture. [R-053]
 - The `#` cell handled selection a second time after the row had already handled it, so

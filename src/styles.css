@@ -730,3 +730,49 @@ input {
 .swatch.wide span:first-child { border-radius: 3px 0 0 3px; }
 .swatch.wide span:last-child { border-radius: 0 3px 3px 0; }
 .swatch.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-wash); }
+
+
+/* ---------- shared editing ---------- */
+
+/* Shown only when someone else holds the editor lock. Everything else stays
+   exactly as it is; the edits are refused in the store, not hidden here. */
+.editing-banner {
+  position: fixed;
+  top: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 55;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px 7px 13px;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  box-shadow: var(--shadow-pop);
+  font-size: 12.5px;
+  color: var(--dim);
+  white-space: nowrap;
+}
+.editing-banner .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--today);
+  flex: none;
+  animation: editing-pulse 2s ease-in-out infinite;
+}
+.editing-banner button {
+  padding: 3px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+}
+
+@keyframes editing-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .editing-banner .dot { animation: none; }
+}

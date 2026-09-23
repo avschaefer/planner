@@ -1,15 +1,23 @@
 # STATUS — Planner
 
-**Phase:** v3 presentation pass · engine, store and browser gestures all verified
+**Phase:** v4 shared backend · built and unit-tested; **not yet run against a live project**
 **Updated:** 2026-09-23
 
 ---
 
 ## Now
 
+- [ ] **Stand the backend up.** Apply `supabase/migrations/0001_init.sql`, set the six env vars
+      from `.env.example` in Vercel and `.env.local`, then `npx vercel dev` and walk the
+      two-browser check in the Verification section below. Nothing in §Sharing has run against
+      a real Supabase project yet.
 - [ ] **Plan a real program in it** and see what breaks. `npm run dev` → http://localhost:5173
 
 ## Recently completed
+
+**2026-09-23 — v4 shared backend.** Supabase persistence behind the existing `ScheduleRepo`,
+a shared-passcode gate in Vercel Routing Middleware, Realtime viewing, and a soft one-editor
+lock. Resolves PRD Q-1 and Q-6.
 
 **2026-09-23 — v3 presentation pass.** Settings modal (palettes, bar/summary/milestone
 formatting, date format), PNG export, hide-the-table, click-away to deselect. Float tails
@@ -23,7 +31,9 @@ the stored `Task.code`, the dark theme and the pin glyph were removed. See `CHAN
 
 ## Built
 
-All 41 requirements have an implementation. Every row below is verified by a test that has run.
+All 46 requirements have an implementation. Every row below is verified by a test that has run,
+**except the four marked "live-unverified"** — their logic is unit-tested, but no request has
+been made to a real Supabase project.
 
 | Area | State |
 |---|---|
@@ -49,10 +59,15 @@ All 41 requirements have an implementation. Every row below is verified by a tes
 | PNG export of the whole chart (R-058) | Built · browser test |
 | Hide the activity table (R-059) | Built · browser test |
 | Click-away to clear the selection (R-060) | Built · browser test |
+| Passcode gate, session cookie (R-061, R-065) | Built · 15 unit tests over the gate and the write guards |
+| Editor lock rule (R-064) | Built · unit tested · **lock hand-off live-unverified** |
+| Supabase document mapping (R-062) | Built · round-trip unit tested · **live-unverified** |
+| Realtime subscription (R-063) | Built · **live-unverified** |
 | IndexedDB persistence, JSON import/export | Built · reload test |
 
-**Test suites:** 51 unit tests (Vitest) · 21 browser tests (Playwright). Both pass as of
-2026-09-23.
+**Test suites:** 80 unit tests (Vitest) · 21 browser tests (Playwright). Both pass as of
+2026-09-23. The browser suite runs against the IndexedDB fallback, which is deliberate: it
+proves the local path still works and keeps the suite runnable without a network.
 
 > Running Playwright here needs Chromium's shared libraries:
 > `sudo apt-get install -y libnss3 libnspr4 libasound2t64`.
@@ -75,8 +90,8 @@ Only once the core is judged worth keeping.
 |---|---|---|
 | 1 | Dependency-arrow lane assignment (currently a naive `i % 3` offset) | R-035 |
 | 2 | Deadline constraints and negative float | Q-4 |
-| 3 | Decide Q-6 — concurrent editing vs. one editor at a time | Q-6 |
-| 4 | Supabase behind `ScheduleRepo` | Q-1, D-014 |
+
+| 4 | Real accounts, if the audience widens past a team that trusts one shared passcode | — |
 
 ## Blocked
 
@@ -84,7 +99,7 @@ Nothing.
 
 ## Decisions log
 
-`docs/EDD.md` §6, D-001 … D-025. The four that shaped the build:
+`docs/EDD.md` §6, D-001 … D-030. The four that shaped the build:
 
 - **D-006** — summary rows are containers and carry no dependencies
 - **D-007** — dragging an activity with predecessors pins it (visible, removable) rather than

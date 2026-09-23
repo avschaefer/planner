@@ -29,22 +29,37 @@ sudo apt-get install -y libnss3 libnspr4 libasound2t64   # Chromium's shared lib
 
 | Env | Where | How |
 |---|---|---|
-| Dev | localhost:5173 | `npm run dev` |
-| Prod | static host (Vercel / Netlify / Pages) | build `npm run build`, serve `dist/` |
+| Local, no backend | localhost:5173 | `npm run dev` — IndexedDB, no passcode |
+| Local, full stack | localhost:3000 | `npx vercel dev` with `.env.local` — Supabase + passcode |
+| Prod | Vercel | push to `main` |
 
-No environment variables. No secrets. No backend. Nothing to configure per environment.
-This changes when PRD Q-1 lands and storage moves to Supabase; until then, keep it true.
+`npm run dev` runs the app against IndexedDB, which is what the browser test suite uses. The
+passcode gate and the shared database only exist under `vercel dev` and on Vercel, because both
+need the serverless functions.
+
+Environment variables are listed in `.env.example`. `SUPABASE_SERVICE_ROLE_KEY` bypasses RLS and
+must never appear in anything `VITE_`-prefixed — that prefix compiles a value into the public
+bundle.
+
+### Rotating the passcode
+
+Change `APP_PASSCODE` in Vercel and redeploy. Existing sessions stay valid until their cookie
+expires; to sign everyone out immediately, change `SESSION_SECRET` as well.
 
 ## Layout
 
 ```
+api/             Vercel serverless functions (passcode, writes, editor lock)
 docs/            PRD.md, EDD.md, ADMIN.md, STATUS.md
+middleware.ts    Vercel Routing Middleware — the passcode gate
+supabase/        migrations/
 e2e/             Playwright browser smoke tests
 src/
   engine/        calendar.ts  graph.ts  ids.ts  schedule.ts  predecessors.ts  types.ts
                  calendar.test.ts  schedule.test.ts  predecessors.test.ts
   store/         store.ts (document, undo stack, transient UI state)  store.test.ts
-  persist/       repo.ts (ScheduleRepo interface)  idbRepo.ts
+  persist/       repo.ts (ScheduleRepo interface)  idbRepo.ts  supabaseRepo.ts
+                 realtime.ts  lock.ts
   ui/            ScheduleView  TaskTable  Gantt  DateField  LinkPopover  Settings  ProjectList
                  colors.ts  exportPng.ts  icons.tsx  linkPath.ts  measure.ts  reorder.ts
                  rows.ts  settings.ts  timeline.ts
@@ -72,6 +87,10 @@ render. Neither builds its own.
 | Summary group hue assignment | `src/ui/colors.ts` |
 | Palettes, bar/milestone formatting, persistence | `src/ui/settings.ts` |
 | PNG export of the chart | `src/ui/exportPng.ts` |
+| Passcode gate, session cookie | `middleware.ts`, `api/_session.ts` |
+| Shared persistence and live sync | `src/persist/supabaseRepo.ts`, `src/persist/realtime.ts` |
+| Editor lock rule (shared by client and API) | `src/persist/lock.ts` |
+| Database schema | `supabase/migrations/0001_init.sql` |
 | Timeline ticks, zoom scales | `src/ui/timeline.ts` |
 | Dependency arrow routing | `src/ui/linkPath.ts` |
 | Colours, spacing, row height | `src/styles.css` (`:root`) |

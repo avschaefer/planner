@@ -13,6 +13,7 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.1",
     "idb": "8.0.3",
     "react": "19.3.0",
     "react-dom": "19.3.0",
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "6.1.1",

@@ -1,6 +1,6 @@
 # PRD — Planner
 
-**Status:** v3 presentation pass · **Last updated:** 2026-09-23 · **Owner:** av
+**Status:** v4 shared backend · **Last updated:** 2026-09-23 · **Owner:** av
 
 ---
 
@@ -111,7 +111,17 @@ Priority: **P0** = the app is pointless without it · **P1** = needed before it'
 | R-059 | Hide the activity table | A toggle collapses the table so the chart has the whole window; the choice persists | P2 |
 | R-060 | Clicking empty space clears the selection | Clicking the chart below the last bar, the timeline header, the table header, or the table's empty area deselects, so a snapshot carries no selection highlight | P2 |
 
-**Totals: 41 requirements — P0: 18 · P1: 16 · P2: 7**
+### 5.6 Sharing
+
+| ID | Requirement | Acceptance criteria | Pri |
+|---|---|---|---|
+| R-061 | One shared passcode, no accounts | A single passcode gates every route, including the built bundle. Success sets a signed, HttpOnly session cookie. No sign-up, no roles, no per-user anything | P1 |
+| R-062 | Schedules live in a shared database | Every project is one row in Supabase Postgres, mirroring `ProjectDoc`. Creating, editing and deleting work from any machine behind the passcode | P1 |
+| R-063 | Live viewing | A change made by one person appears on every other connected screen within about a second, with no refresh | P1 |
+| R-064 | One editor at a time | The first person to edit holds the editor lock; everyone else sees a read-only banner and can take over with one click. The lock is abandoned 90s after its holder goes quiet | P1 |
+| R-065 | Writes cannot bypass the passcode | The anon key is read-only by RLS and is never served to an unauthenticated visitor; every write goes through a server function holding the service-role key | P1 |
+
+**Totals: 46 requirements — P0: 18 · P1: 21 · P2: 7**
 
 ---
 
@@ -141,7 +151,7 @@ Explicitly not built, at any priority:
 | Procurement | WBS/OBS management screens |
 | Complex calendar rules (shift patterns, per-activity calendars) | Administrative/configuration screens |
 | Baselines and planned-vs-actual variance | Progress tracking / percent complete |
-| Authentication, accounts, billing, marketing pages | Multi-user editing or sharing *(deferred, not abandoned — see Q-1)* |
+| Authentication, accounts, billing, marketing pages *(one shared passcode only — R-061)* | Concurrent multi-user editing *(one editor at a time — R-064)* |
 | Reporting, exports to PDF/XER/MPP *(PNG of the chart is in — R-058)* | Mobile layout |
 
 Holidays are out entirely — the calendar is Mon–Fri with no exception list.
@@ -171,9 +181,9 @@ Holidays are out entirely — the calendar is Mon–Fri with no exception list.
 
 | # | Question | Answer (2026-09-21) |
 |---|---|---|
-| Q-1 | Local-only storage vs. the "general PMs" audience | **Local-only for now.** Supabase is the intended destination once the tool proves worth building. Persistence sits behind a repository interface (EDD D-014) so the swap is contained rather than a rewrite. Accepted cost meanwhile: one browser, one machine, no recovery if site data is cleared |
+| Q-1 | Local-only storage vs. the "general PMs" audience | **Resolved 2026-09-23 — Supabase (R-062).** D-014's repository interface held: the swap is one new `ScheduleRepo` implementation, no call site changed. IndexedDB stays as the fallback for an unconfigured build, which is what keeps the test suite runnable offline |
 | Q-2 | Holidays | **Out.** Mon–Fri only, no exception list. Schedules crossing a holiday period will drift from reality; accepted |
 | Q-5 | Multi-select and bulk edit | **Built — R-053.** Rubber-band and gutter-sweep selection, with delete, indent/outdent and bar drag acting on the set in one undo step |
 | Q-7 | Dark theme | **No.** Light only (EDD D-020). Two palettes double the cost of every colour decision for a tool used in one room |
 | Q-3 | Should dragging a summary bar move its children? | **Yes — the entire subtree**, all nesting levels, by the same working-day offset (R-041) |
-| Q-6 | What does "shared" mean when Q-1 lands? | **Concurrent editing, or at minimum one editor at a time.** Single-editor-at-a-time is compatible with today's architecture (a lock plus the existing whole-document save). Genuine concurrent editing is not: it breaks snapshot undo (D-008) and whole-document writes. Flagged as the main thing that would force a rewrite — see EDD §9 |
+| Q-6 | What does "shared" mean when Q-1 lands? | **Resolved 2026-09-23 — one editor at a time (R-064).** A soft lock claimed on the first edit, enforced in `commit()` and again server-side on write. Whole-document saves and snapshot undo survive untouched, exactly as EDD §9 predicted. Genuine concurrent editing remains a rewrite of the store and is not planned |
