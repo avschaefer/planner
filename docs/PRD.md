@@ -65,7 +65,7 @@ Priority: **P0** = the app is pointless without it · **P1** = needed before it'
 | R-014 | Working-day calendar (Mon–Fri) | Durations and lag count working days only; no activity starts or finishes on a Saturday or Sunday; a 5d activity starting Friday finishes the following Thursday | P0 |
 | R-015 | Automatic propagation | Changing a date, duration, link, or lag reschedules all affected successors immediately, with no explicit "schedule" action | P0 |
 | R-016 | Circular logic is impossible | A link that would create a cycle is rejected at creation with a clear message; the existing schedule is unchanged | P0 |
-| R-017 | Dragging a driven activity is meaningful | Dragging an activity that has predecessors applies a start-no-earlier-than constraint rather than silently breaking or ignoring the logic; the constraint is visible and removable | P1 |
+| R-017 | Dragging a driven activity is meaningful | Dragging an activity that has predecessors applies a start-no-earlier-than constraint rather than silently breaking or ignoring the logic. The held start is marked on the Start cell and released from the date picker that opens there | P1 |
 | R-018 | Summary rows roll up, they don't schedule | A summary's dates are derived from its children; summaries cannot have predecessors or successors and do not appear in the dependency network | P1 |
 
 ### 5.3 Task table
@@ -102,7 +102,7 @@ Priority: **P0** = the app is pointless without it · **P1** = needed before it'
 | R-050 | Undo/redo | Move, resize, add link, remove link, change lag, add activity, delete activity, rename, indent/outdent are all reversible and re-appliable | P1 |
 | R-051 | Keyboard shortcuts | Add, edit, delete, indent/outdent, navigate, zoom, undo/redo. No shortcut exists without a reason | P1 |
 | R-052 | Restrained visual design | No gradients, status lights, large headers, or heavy shadows; the Gantt occupies the majority of the viewport; typography and spacing carry the hierarchy. Light theme only | P1 |
-| R-053 | Multi-select | Rubber-band drag in the chart, press-and-drag down the number gutter, Shift-click to extend, Cmd/Ctrl-click to toggle, Cmd/Ctrl+A for all. Delete, indent/outdent, milestone toggle and bar drag all act on the whole selection in one undo step | P1 |
+| R-053 | Multi-select | Rubber-band drag in the chart, press-and-drag across table rows, Shift-click to extend, Cmd/Ctrl-click to toggle, Cmd/Ctrl+A for all. A modified click is always a selection, never a cell edit. Delete, indent/outdent, milestone toggle and bar drag all act on the whole selection in one undo step | P1 |
 | R-054 | Drag rows to reorder and re-nest | A grip in the leftmost column drags a row (with its subtree) up and down the outline; dragging sideways sets the depth, moving it into or out of a summary. The insertion point and depth are previewed before release; Escape abandons | P1 |
 | R-055 | MS Project predecessor shorthand | `3`, `3FS`, `3FS+2d`, `3+2`, and the reversed `FS3+2d` all parse, in any case, separated by commas, semicolons or spaces. Output is canonical: `3`, `4SS+2d` | P1 |
 | R-056 | Summary groups are colour-coded | Each top-level summary takes a hue; its bar is that hue and everything inside it inherits a tint of it, in the chart and as a rail in the table. Critical activities override the group hue with the critical colour | P2 |

@@ -195,7 +195,7 @@ export function DateField({
           {hasConstraint && (
             <button
               className="plain"
-              title="Drop the pinned date and let the logic drive this activity again"
+              title="Stop holding this activity on a date and let its logic drive it again"
               onClick={() => {
                 onClear();
                 onClose();

@@ -236,6 +236,7 @@ input {
   border-bottom: 1px solid var(--line-soft);
   cursor: default;
   position: relative;
+  user-select: none;
 }
 .trow:hover { background: var(--raised); }
 .trow.sel, .trow.sel:hover { background: var(--accent-soft); }
@@ -303,7 +304,6 @@ input {
   color: var(--faint);
   justify-content: flex-end;
   cursor: pointer;
-  user-select: none;
 }
 .td.pred { font-family: var(--mono); font-size: 11.5px; color: var(--dim); }
 .td.editable { border-radius: var(--radius-sm); }
@@ -348,8 +348,10 @@ input {
 .twist svg { transition: transform 0.13s ease; }
 .twist.collapsed svg { transform: rotate(-90deg); }
 
-.pin { color: var(--faint); flex: none; display: grid; place-items: center; cursor: pointer; }
-.pin:hover { color: var(--accent); }
+/* A start date held by a drag (a start-no-earlier-than constraint). Marked on
+   the cell it constrains; released from the date picker that opens there. */
+.td.date.pinned { color: var(--text); box-shadow: inset 2px 0 0 var(--accent); }
+.td.date.pinned.editable:hover { box-shadow: inset 2px 0 0 var(--accent), inset 0 0 0 1px var(--line-strong); }
 
 .addrow {
   display: flex;

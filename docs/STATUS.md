@@ -29,7 +29,7 @@ All 37 requirements have an implementation. Every row below is verified by a tes
 | Date pickers on Start and Finish | Built · browser test |
 | Gantt bars, drag/resize/link gestures | Built · browser tests for all three |
 | Link drag onto any part of a row, type from the gesture | Built · FS and SS browser tests |
-| Multi-select: rubber band, gutter sweep, bulk drag | Built · browser test |
+| Multi-select: rubber band, row sweep, Shift/Ctrl click, bulk drag | Built · browser test |
 | Row drag-and-drop reorder and re-nest | Built · browser test |
 | Timeline zoom, today marker, weekend shading | Built · browser-exercised |
 | Dependency popover, critical filter | Built · browser test for the filter |
@@ -47,6 +47,9 @@ All 37 requirements have an implementation. Every row below is verified by a tes
 - The stored `Task.code` field. Numbers are derived from outline position (EDD D-018).
 - The dark theme. Light only (EDD D-020).
 - The critical-activity count in the toolbar; the finish date stands alone.
+- The pin glyph beside the activity name. The constraint itself is load-bearing (D-007) — it is
+  what makes dragging a driven activity mean anything — so it stays, marked on the Start cell it
+  constrains and released from the date picker there.
 
 ## Next
 

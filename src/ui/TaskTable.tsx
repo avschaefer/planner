@@ -11,6 +11,14 @@ import { dropPlan, INDENT, NAME_X, type DropPlan } from './reorder';
 import { ROW_H, type Row } from './rows';
 
 export type Field = 'name' | 'start' | 'finish' | 'duration' | 'pred';
+
+/**
+ * Shift / Cmd / Ctrl + click is a selection gesture, not an edit — without this
+ * every modified click in the table opened a cell editor instead of extending
+ * or toggling the selection.
+ */
+const selecting = (e: { shiftKey: boolean; metaKey: boolean; ctrlKey: boolean }) =>
+  e.shiftKey || e.metaKey || e.ctrlKey;
 export interface Editing {
   taskId: string;
   field: Field;
@@ -108,7 +116,7 @@ export function TaskTable({ rows, hues, schedule, editing, setEditing, onAdd }: 
     setRowDrag({ ids, moving, plan: null });
   }
 
-  /* Press-and-drag down the # gutter to sweep a range of rows. */
+  /* Press and drag across rows — from the # gutter or anywhere else — sweeps a range. */
   const [sweeping, setSweeping] = useState(false);
   useEffect(() => {
     if (!sweeping) return;
@@ -213,7 +221,13 @@ export function TaskTable({ rows, hues, schedule, editing, setEditing, onAdd }: 
               `${task.type === 'milestone' ? ' milestone' : ''}${s?.critical ? ' critical' : ''}${hue}`
             }
             style={{ height: ROW_H }}
-            onPointerDown={(e) => pick(task.id, e)}
+            onPointerDown={(e) => {
+              pick(task.id, e);
+              // Press and drag across rows selects the range. If the pointer
+              // never leaves the cell, the click still lands and opens its
+              // editor, so nothing is taken away by this.
+              if (!selecting(e)) setSweeping(true);
+            }}
             onPointerEnter={() => sweeping && store.selectTask(task.id, 'range')}
           >
             <div
@@ -225,22 +239,15 @@ export function TaskTable({ rows, hues, schedule, editing, setEditing, onAdd }: 
               <Grip />
             </div>
 
-            <div
-              className="td code"
-              style={{ width: 36, flex: 'none' }}
-              title="Drag down the numbers to select a range"
-              onPointerDown={(e) => {
-                pick(task.id, e);
-                setSweeping(true);
-              }}
-            >
+            {/* Selection and sweeping are handled once, on the row. */}
+            <div className="td code" style={{ width: 36, flex: 'none' }}>
               {ids.get(task.id)}
             </div>
 
             <div
               className={`td editable${editing?.taskId === task.id && editing.field === 'name' ? ' editing' : ''}`}
               style={{ flex: 1, minWidth: 160, paddingLeft: 8 + row.depth * 15 }}
-              onDoubleClick={() => setEditing({ taskId: task.id, field: 'name' })}
+              onDoubleClick={(e) => !selecting(e) && setEditing({ taskId: task.id, field: 'name' })}
             >
               <div className="tname">
                 {isSummary ? (
@@ -277,21 +284,9 @@ export function TaskTable({ rows, hues, schedule, editing, setEditing, onAdd }: 
                 ) : (
                   <span
                     className={`label${task.name ? '' : ' untitled'}`}
-                    onClick={() => setEditing({ taskId: task.id, field: 'name' })}
+                    onClick={(e) => !selecting(e) && setEditing({ taskId: task.id, field: 'name' })}
                   >
                     {task.name || 'Untitled activity'}
-                  </span>
-                )}
-                {task.constraint && !isSummary && (
-                  <span
-                    className="pin"
-                    title="Pinned by dragging. Click to release it back to its logic."
-                    onPointerDown={(e) => {
-                      e.stopPropagation();
-                      store.clearConstraint(task.id);
-                    }}
-                  >
-                    <PinIcon />
                   </span>
                 )}
               </div>
@@ -304,6 +299,7 @@ export function TaskTable({ rows, hues, schedule, editing, setEditing, onAdd }: 
                 width={84}
                 editable={!isSummary}
                 editing={editing?.taskId === task.id && editing.field === field}
+                pinned={field === 'start' && !!task.constraint && !isSummary}
                 display={s ? formatWorkDay(field === 'start' ? s.start : Math.max(s.start, s.end - 1)) : ''}
                 valueIso={valueFor(task.id, field)}
                 hasConstraint={!!task.constraint}
@@ -402,7 +398,7 @@ function EditCell({
     <div
       className={`td ${className}${editable ? ' editable' : ''}${editing ? ' editing' : ''}`}
       style={width ? { width, flex: 'none' } : { flex: '0 0 122px' }}
-      onClick={() => editable && onOpen()}
+      onClick={(e) => editable && !selecting(e) && onOpen()}
     >
       {editing ? <CellInput initial={value} onCommit={onCommit} onDone={onDone} /> : display}
     </div>
@@ -415,6 +411,7 @@ function DateCell({
   width,
   editable,
   editing,
+  pinned,
   display,
   valueIso,
   hasConstraint,
@@ -428,6 +425,7 @@ function DateCell({
   width: number;
   editable: boolean;
   editing: boolean;
+  pinned: boolean;
   display: string;
   valueIso: Iso;
   hasConstraint: boolean;
@@ -447,9 +445,12 @@ function DateCell({
   return (
     <div
       ref={ref}
-      className={`td date${editable ? ' editable' : ''}${editing ? ' editing' : ''}`}
+      className={`td date${editable ? ' editable' : ''}${editing ? ' editing' : ''}${
+        pinned ? ' pinned' : ''
+      }`}
       style={{ width, flex: 'none' }}
-      onClick={() => editable && onOpen()}
+      title={pinned ? 'Held on this date by a drag. Open it to release it back to the logic.' : undefined}
+      onClick={(e) => editable && !selecting(e) && onOpen()}
     >
       {display}
       {editing && anchor && (
@@ -538,20 +539,6 @@ function Chevron() {
   return (
     <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
       <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function PinIcon() {
-  return (
-    <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-      <path
-        d="M4.5 1.5h3l-.5 3 2 1.5v1h-6v-1l2-1.5-.5-3z M6 7.5v3"
-        stroke="currentColor"
-        strokeWidth="1.1"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
     </svg>
   );
 }

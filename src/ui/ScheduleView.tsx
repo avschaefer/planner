@@ -378,6 +378,7 @@ function Shortcuts({ onClose }: { onClose(): void }) {
         ['Cmd/Ctrl + click', 'Add or remove one'],
         ['Cmd/Ctrl + A', 'Select all'],
         ['Drag in the chart', 'Rubber-band select'],
+        ['Drag down the table', 'Select a range of rows'],
         ['Alt + → ←', 'Indent / outdent'],
         ['Esc', 'Clear the selection'],
       ],

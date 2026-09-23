@@ -662,7 +662,9 @@ function BarTip({
           {preds} in · {succs} out
         </div>
       )}
-      {row.task.constraint && <div className="t-row">Pinned to {formatWorkDay(row.task.constraint.day)}</div>}
+      {row.task.constraint && (
+        <div className="t-row">Held on {formatWorkDay(row.task.constraint.day)}</div>
+      )}
     </div>
   );
 }

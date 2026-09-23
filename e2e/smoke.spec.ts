@@ -113,7 +113,7 @@ test('a start date is picked from the calendar', async ({ page }) => {
 
   await expect(page.locator('.datepick')).toHaveCount(0);
   expect(await startCell(page, 0).innerText()).not.toBe(before);
-  await expect(page.locator('.trow').nth(0).locator('.pin')).toBeVisible();
+  await expect(page.locator('.trow').nth(0).locator('.td.date.pinned')).toHaveCount(1);
 });
 
 test('dragging a bar reschedules it, and undo puts it back', async ({ page }) => {
