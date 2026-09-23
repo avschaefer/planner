@@ -16,7 +16,7 @@ interface Doc {
  * editor lock; a save from anyone else while a live editor holds it is refused
  * with 409 and the caller drops to read-only.
  */
-export default async function handler(request: Request): Promise<Response> {
+export async function handler(request: Request): Promise<Response> {
   if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
   if (!(await authorised(request))) return json({ error: 'Locked' }, 401);
 
@@ -60,3 +60,8 @@ export default async function handler(request: Request): Promise<Response> {
 
   return json({ ok: true });
 }
+
+/* Vercel reads a bare default-exported function as the legacy (req, res) Node
+   handler and ignores anything it returns. The fetch object is the web-standard
+   form, which is what these are written against. */
+export default { fetch: handler };

@@ -8,8 +8,11 @@ import { lockIsFree } from '../src/persist/lock';
  */
 export function admin(): SupabaseClient {
   const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required.');
+  // SUPABASE_SECRET_KEY is the current name (sb_secret_...); the older
+  // SUPABASE_SERVICE_ROLE_KEY is accepted so a half-migrated environment or an
+  // older deployment keeps working.
+  const key = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error('SUPABASE_URL and SUPABASE_SECRET_KEY are required.');
   return createClient(url, key, { auth: { persistSession: false } });
 }
 

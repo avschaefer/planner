@@ -51,10 +51,21 @@ export function docToRow(doc: ProjectDoc): Omit<ProjectRow, 'client_id' | 'edito
 /* ------------------------------------------------------------- client ---- */
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+// Publishable key (sb_publishable_...) is the current name; the legacy anon
+// key variable is accepted too. Both map to the anon role, which RLS limits
+// to SELECT.
+const anonKey = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
+  import.meta.env.VITE_SUPABASE_ANON_KEY) as string | undefined;
 
-/** True when this build is pointed at a shared database rather than IndexedDB. */
-export const isShared = Boolean(url && anonKey);
+/**
+ * True when this build is pointed at a shared database rather than IndexedDB.
+ *
+ * VITE_FORCE_LOCAL pins it to IndexedDB regardless. The browser suite sets it,
+ * so the local path is tested deterministically whether or not the machine
+ * running the tests happens to have a .env.local pointing at a real project.
+ */
+export const isShared =
+  Boolean(url && anonKey) && import.meta.env.VITE_FORCE_LOCAL !== '1';
 
 let client: SupabaseClient | null = null;
 

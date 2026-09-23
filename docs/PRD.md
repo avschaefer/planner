@@ -1,4 +1,4 @@
-# PRD — Planner
+# PRD — Marga
 
 **Status:** v4 shared backend · **Last updated:** 2026-09-23 · **Owner:** av
 
@@ -11,7 +11,7 @@ expensive, slow, visually dated, and built for an enterprise workflow most plann
 The alternatives people reach for (Excel Gantts, Asana/Monday timelines) draw bars but have no
 scheduling engine: dates don't propagate, lag doesn't exist, and there is no float or critical path.
 
-**Planner is the scheduling logic of P6 with the interaction quality of a modern design tool.**
+**Marga is the scheduling logic of P6 with the interaction quality of a modern design tool.**
 Nothing else.
 
 ## 2. Users

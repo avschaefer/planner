@@ -2,7 +2,7 @@ import { authorised, json } from './_session';
 import { admin, TABLE } from './_supabase';
 
 /** POST { id } — deleting a schedule is not gated by the editor lock. */
-export default async function handler(request: Request): Promise<Response> {
+export async function handler(request: Request): Promise<Response> {
   if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
   if (!(await authorised(request))) return json({ error: 'Locked' }, 401);
 
@@ -19,3 +19,8 @@ export default async function handler(request: Request): Promise<Response> {
   if (error) return json({ error: error.message }, 500);
   return json({ ok: true });
 }
+
+/* Vercel reads a bare default-exported function as the legacy (req, res) Node
+   handler and ignores anything it returns. The fetch object is the web-standard
+   form, which is what these are written against. */
+export default { fetch: handler };

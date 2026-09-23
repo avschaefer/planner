@@ -1,4 +1,4 @@
-# ADMIN — Planner
+# ADMIN — Marga
 
 **Last updated:** 2026-09-23
 
@@ -31,13 +31,13 @@ sudo apt-get install -y libnss3 libnspr4 libasound2t64   # Chromium's shared lib
 |---|---|---|
 | Local, no backend | localhost:5173 | `npm run dev` — IndexedDB, no passcode |
 | Local, full stack | localhost:3000 | `npx vercel dev` with `.env.local` — Supabase + passcode |
-| Prod | Vercel | push to `main` |
+| Prod | https://marga-planner.vercel.app | push to `main` |
 
 `npm run dev` runs the app against IndexedDB, which is what the browser test suite uses. The
 passcode gate and the shared database only exist under `vercel dev` and on Vercel, because both
 need the serverless functions.
 
-Environment variables are listed in `.env.example`. `SUPABASE_SERVICE_ROLE_KEY` bypasses RLS and
+Environment variables are listed in `.env.example`. `SUPABASE_SECRET_KEY` bypasses RLS and
 must never appear in anything `VITE_`-prefixed — that prefix compiles a value into the public
 bundle.
 

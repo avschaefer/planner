@@ -1,6 +1,6 @@
 # Changelog
 
-Notable changes to Planner. Format follows [Keep a Changelog](https://keepachangelog.com);
+Notable changes to Marga. Format follows [Keep a Changelog](https://keepachangelog.com);
 requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ## [Unreleased]

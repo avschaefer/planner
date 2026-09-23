@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { cookieHeader, signSession } from './api/_session';
 import proxy from './proxy';
-import unlock from './api/unlock';
+import { handler as unlock } from './api/unlock';
 
 const SECRET = 'test-secret-do-not-use';
 const PASSCODE = 'open sesame';

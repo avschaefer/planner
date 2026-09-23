@@ -6,6 +6,5 @@
   "proxy": {
     "entrypoint": "proxy.ts",
     "matcher": ["/((?!api/unlock).*)"]
-  },
-  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }]
+  }
 }

@@ -60,7 +60,7 @@ const UNLOCK_PAGE = `<!doctype html>
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Planner</title>
+<title>Marga</title>
 <style>
   :root {
     --bg: #fcfcfb; --panel: #fff; --line: #eae8e3; --line-strong: #d9d6cf;
@@ -99,7 +99,7 @@ const UNLOCK_PAGE = `<!doctype html>
 </head>
 <body>
   <form id="f">
-    <h1>Planner</h1>
+    <h1>Marga</h1>
     <p>Enter the shared passcode to continue.</p>
     <label for="p">Passcode</label>
     <input id="p" type="password" autocomplete="current-password" autofocus />

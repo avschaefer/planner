@@ -1,7 +1,7 @@
 import { cookieHeader, json, signSession, timingSafeEqual } from './_session';
 
 /** POST { passcode } — the only route the middleware lets through unauthenticated. */
-export default async function handler(request: Request): Promise<Response> {
+export async function handler(request: Request): Promise<Response> {
   if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 
   const passcode = process.env.APP_PASSCODE;
@@ -24,3 +24,8 @@ export default async function handler(request: Request): Promise<Response> {
 
   return json({ ok: true }, 200, { 'set-cookie': cookieHeader(await signSession(secret)) });
 }
+
+/* Vercel reads a bare default-exported function as the legacy (req, res) Node
+   handler and ignores anything it returns. The fetch object is the web-standard
+   form, which is what these are written against. */
+export default { fetch: handler };

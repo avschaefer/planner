@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import claim from './claim';
-import remove from './delete';
-import save from './save';
+import { handler as claim } from './claim';
+import { handler as remove } from './delete';
+import { handler as save } from './save';
 
 /**
  * The data functions re-check the cookie themselves rather than trusting the

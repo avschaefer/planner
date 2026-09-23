@@ -186,35 +186,83 @@ input {
 
 /* ---------- project list ---------- */
 
-.projects { padding: 56px 40px; overflow: auto; max-width: 780px; margin: 0 auto; width: 100%; }
-.projects h1 { font-size: 24px; font-weight: 640; letter-spacing: -0.025em; margin: 0 0 4px; }
-.projects p.sub { color: var(--dim); margin: 0 0 28px; font-size: 14px; }
-.projects .new { display: flex; gap: 8px; margin-bottom: 26px; }
-.projects .new input { border-color: var(--line-strong); box-shadow: none; height: 34px; }
-.projects .new input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
-.projects .new button { height: 34px; }
+.projects { padding: 72px 40px; overflow: auto; max-width: 720px; margin: 0 auto; width: 100%; }
 
-.plist { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--panel); }
+.brand { display: flex; align-items: center; gap: 11px; margin-bottom: 32px; }
+.brand .mark { display: grid; place-items: center; color: var(--accent); flex: none; }
+.brand h1 {
+  font-size: 26px;
+  font-weight: 640;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.projects .new { display: flex; gap: 8px; margin-bottom: 14px; }
+.projects .new input {
+  border-color: var(--line-strong);
+  box-shadow: none;
+  height: 40px;
+  padding: 0 13px;
+  font-size: 13.5px;
+  background: var(--panel);
+}
+.projects .new input::placeholder { color: var(--faint); }
+.projects .new input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+.projects .new button { height: 40px; padding: 0 18px; font-weight: 560; }
+
+.plist { display: flex; flex-direction: column; }
 .pitem {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 13px 14px;
+  padding: 15px 14px 15px 0;
   cursor: pointer;
+  border-bottom: 1px solid var(--line-soft);
+  position: relative;
+  transition: background 0.1s ease;
 }
-.pitem + .pitem { border-top: 1px solid var(--line-soft); }
+.pitem:first-child { border-top: 1px solid var(--line-soft); }
 .pitem:hover { background: var(--raised); }
-.pitem .name { flex: 1; font-weight: 540; letter-spacing: -0.005em; }
-.pitem .count, .pitem .when { color: var(--faint); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+/* A hairline that fills in on hover — the only motion on the page. */
+.pitem .rule {
+  width: 3px;
+  align-self: stretch;
+  border-radius: 2px;
+  background: transparent;
+  flex: none;
+  margin-right: 1px;
+  transition: background 0.12s ease;
+}
+.pitem:hover .rule { background: var(--accent); }
+
+.pitem .name {
+  flex: 1;
+  font-weight: 560;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pitem .count, .pitem .when {
+  color: var(--faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.pitem .when { min-width: 74px; text-align: right; }
 .pitem .del { visibility: hidden; color: var(--dim); }
 .pitem:hover .del { visibility: visible; }
 .pitem .del:hover { color: var(--danger); background: var(--crit-soft); }
+
 .empty {
   color: var(--faint);
-  padding: 38px 14px;
+  padding: 44px 16px;
   border: 1px dashed var(--line-strong);
   border-radius: var(--radius);
   text-align: center;
+  font-size: 13.5px;
 }
 
 /* ---------- schedule layout ---------- */

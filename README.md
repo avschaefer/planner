@@ -1,10 +1,12 @@
-# Planner
+# Marga
 
 Critical-path scheduling with a modern interface. The scheduling logic of Primavera P6 —
 activities, dependencies, lag, float, critical path — without the enterprise suite around it.
 
 Runs two ways: local-only against IndexedDB, or shared — one Supabase database behind a single
 passcode, with everyone watching the same schedule change live.
+
+Deployed at **https://marga-planner.vercel.app** behind a shared passcode.
 
 ## Run it
 

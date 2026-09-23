@@ -1,4 +1,4 @@
-# STATUS — Planner
+# STATUS — Marga
 
 **Phase:** v4 shared backend · built and unit-tested; **not yet run against a live project**
 **Updated:** 2026-09-23
