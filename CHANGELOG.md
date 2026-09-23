@@ -9,8 +9,8 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 - **Shared backend.** Schedules live in Supabase Postgres, one row per project mirroring
   `ProjectDoc`, reached through a new `ScheduleRepo` implementation. No call site changed. [R-062]
-- **Passcode gate.** One shared passcode, checked in Vercel Routing Middleware ahead of every
-  route including the built bundle, and again in each API function. Signed HttpOnly session
+- **Passcode gate.** One shared passcode, checked in Vercel Routing Middleware (`proxy.ts`) ahead of
+  every route including the built bundle, and again in each API function. Signed HttpOnly session
   cookie; no accounts, no roles. [R-061] [R-065]
 - **Live viewing.** A Supabase Realtime subscription on the open schedule's row; a change made
   anywhere appears everywhere in about a second. [R-063]

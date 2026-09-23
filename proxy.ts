@@ -1,3 +1,4 @@
+import { next } from '@vercel/functions';
 import { COOKIE, readCookie, verifySession } from './api/_session';
 
 /**
@@ -7,19 +8,25 @@ import { COOKIE, readCookie, verifySession } from './api/_session';
  *
  * Everything is behind it except /api/unlock, so the built JavaScript, and with
  * it the Supabase anon key, is never served to someone who has not unlocked.
+ *
+ * Registered as `proxy.entrypoint` in vercel.json rather than by the
+ * `middleware.ts` file convention: that convention defaults to the deprecated
+ * Edge runtime, while a proxy entrypoint runs on Node.js. The matcher lives in
+ * vercel.json alongside it.
+ *
+ * This gate is not the only thing protecting the data. Every function in api/
+ * re-checks the cookie, and RLS limits the anon key to reading, so a gap here
+ * would cost read access, not write access.
  */
-export const config = {
-  matcher: ['/((?!api/unlock).*)'],
-};
 
 /** The one route that must stay open, or there is no way to unlock anything. */
 const OPEN_PATH = '/api/unlock';
 
-export default async function middleware(request: Request): Promise<Response | undefined> {
+export default async function proxy(request: Request): Promise<Response> {
   const pathname = new URL(request.url).pathname;
   // Checked here as well as in the matcher: if that pattern is ever mis-edited,
   // gating the unlock route would lock the whole deployment out of itself.
-  if (pathname === OPEN_PATH) return undefined;
+  if (pathname === OPEN_PATH) return next();
 
   const secret = process.env.SESSION_SECRET;
   if (!secret) {
@@ -30,7 +37,7 @@ export default async function middleware(request: Request): Promise<Response | u
   }
 
   const ok = await verifySession(readCookie(request.headers.get('cookie'), COOKIE), secret);
-  if (ok) return undefined; // Continue to the static build or the API function.
+  if (ok) return next(); // On to the static build, or to the API function.
 
   // An unauthenticated API call gets JSON; a browser gets the unlock page.
   if (pathname.startsWith('/api/')) {

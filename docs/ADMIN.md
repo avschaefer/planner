@@ -51,7 +51,7 @@ expires; to sign everyone out immediately, change `SESSION_SECRET` as well.
 ```
 api/             Vercel serverless functions (passcode, writes, editor lock)
 docs/            PRD.md, EDD.md, ADMIN.md, STATUS.md
-middleware.ts    Vercel Routing Middleware — the passcode gate
+proxy.ts         Vercel Routing Middleware — the passcode gate
 supabase/        migrations/
 e2e/             Playwright browser smoke tests
 src/
@@ -87,7 +87,7 @@ render. Neither builds its own.
 | Summary group hue assignment | `src/ui/colors.ts` |
 | Palettes, bar/milestone formatting, persistence | `src/ui/settings.ts` |
 | PNG export of the chart | `src/ui/exportPng.ts` |
-| Passcode gate, session cookie | `middleware.ts`, `api/_session.ts` |
+| Passcode gate, session cookie | `proxy.ts`, `api/_session.ts` |
 | Shared persistence and live sync | `src/persist/supabaseRepo.ts`, `src/persist/realtime.ts` |
 | Editor lock rule (shared by client and API) | `src/persist/lock.ts` |
 | Database schema | `supabase/migrations/0001_init.sql` |

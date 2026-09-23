@@ -3,5 +3,9 @@
   "framework": "vite",
   "buildCommand": "vite build",
   "outputDirectory": "dist",
+  "proxy": {
+    "entrypoint": "proxy.ts",
+    "matcher": ["/((?!api/unlock).*)"]
+  },
   "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }]
 }
