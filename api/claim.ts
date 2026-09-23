@@ -1,5 +1,5 @@
-import { authorised, json } from './_session';
-import { admin, mayEdit, TABLE, type LockRow } from './_supabase';
+import { authorised, json } from './_session.js';
+import { admin, mayEdit, TABLE, type LockRow } from './_supabase.js';
 
 /**
  * POST { id, clientId, force? } — claim the editor slot, or refresh it.

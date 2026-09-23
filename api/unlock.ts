@@ -1,4 +1,4 @@
-import { cookieHeader, json, signSession, timingSafeEqual } from './_session';
+import { cookieHeader, json, signSession, timingSafeEqual } from './_session.js';
 
 /** POST { passcode } — the only route the middleware lets through unauthenticated. */
 export async function handler(request: Request): Promise<Response> {

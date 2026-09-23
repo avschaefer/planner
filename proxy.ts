@@ -1,5 +1,5 @@
 import { next } from '@vercel/functions';
-import { COOKIE, readCookie, verifySession } from './api/_session';
+import { COOKIE, readCookie, verifySession } from './api/_session.js';
 
 /**
  * The passcode gate. Vercel Routing Middleware runs before anything is served,

@@ -1,5 +1,5 @@
-import { authorised, json } from './_session';
-import { admin, TABLE } from './_supabase';
+import { authorised, json } from './_session.js';
+import { admin, TABLE } from './_supabase.js';
 
 /** POST { id } — deleting a schedule is not gated by the editor lock. */
 export async function handler(request: Request): Promise<Response> {

@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { lockIsFree } from '../src/persist/lock';
+import { lockIsFree } from '../src/persist/lock.js';
 
 /**
  * The service-role client. Server-only: RLS gives the anon key read access and
