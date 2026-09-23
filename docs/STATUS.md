@@ -8,6 +8,16 @@
 ## Now
 
 - [ ] **Plan a real program in it** and see what breaks. `npm run dev` → http://localhost:5173
+- [ ] Re-run `npm test` and `npm run e2e` — the last change shipped unverified by request.
+      The browser assertion for a held start date was rewritten (`.pin` → `.td.date.pinned`)
+      and has not been run since.
+
+## Recently completed
+
+**2026-09-22 — v2 interaction pass.** Date pickers, MS Project predecessor shorthand, outline
+numbering, link dragging onto whole rows with the type from the gesture, multi-select by lasso
+and sweep, row drag-and-drop re-nesting, group colours, light-only theme. The inspector card,
+the stored `Task.code`, the dark theme and the pin glyph were removed. See `CHANGELOG.md`.
 
 ## Built
 

@@ -1,6 +1,6 @@
 # ADMIN — Planner
 
-**Last updated:** 2026-09-21
+**Last updated:** 2026-09-22
 
 ---
 
@@ -41,13 +41,13 @@ This changes when PRD Q-1 lands and storage moves to Supabase; until then, keep 
 docs/            PRD.md, EDD.md, ADMIN.md, STATUS.md
 e2e/             Playwright browser smoke tests
 src/
-  engine/        calendar.ts  graph.ts  schedule.ts  predecessors.ts  types.ts
-                 calendar.test.ts  schedule.test.ts
+  engine/        calendar.ts  graph.ts  ids.ts  schedule.ts  predecessors.ts  types.ts
+                 calendar.test.ts  schedule.test.ts  predecessors.test.ts
   store/         store.ts (document, undo stack, transient UI state)  store.test.ts
   persist/       repo.ts (ScheduleRepo interface)  idbRepo.ts
-  ui/            ScheduleView  TaskTable  Gantt  Inspector  LinkPopover
-                 ProjectList  timeline.ts  linkPath.ts  rows.ts
-  styles.css     design tokens + all styling
+  ui/            ScheduleView  TaskTable  Gantt  DateField  LinkPopover  ProjectList
+                 colors.ts  icons.tsx  linkPath.ts  reorder.ts  rows.ts  timeline.ts
+  styles.css     design tokens + all styling (light theme only)
 ```
 
 **Rule:** `src/engine/` imports nothing from React, the DOM, or the store. It takes a document
@@ -63,9 +63,12 @@ render. Neither builds its own.
 | Forward/backward pass, float, critical | `src/engine/schedule.ts` |
 | Working-day ↔ calendar conversion | `src/engine/calendar.ts` |
 | Cycle detection | `src/engine/graph.ts` (`wouldCycle`) |
-| `FS+2d` / predecessor shorthand parsing | `src/engine/predecessors.ts` |
+| `3FS+2d` / predecessor shorthand parsing | `src/engine/predecessors.ts` |
+| Activity numbering (1, 2, 3 down the outline) | `src/engine/ids.ts` |
 | Every document mutation, undo stack | `src/store/store.ts` (`commit`) |
-| Bar drag, resize, link drag | `src/ui/Gantt.tsx` (the `Drag` state machine) |
+| Bar drag, resize, link drag, rubber-band select | `src/ui/Gantt.tsx` (the `Drag` state machine) |
+| Row drag-and-drop, drop depth | `src/ui/reorder.ts` (`dropPlan`) + `src/ui/TaskTable.tsx` |
+| Summary group hue assignment | `src/ui/colors.ts` |
 | Timeline ticks, zoom scales | `src/ui/timeline.ts` |
 | Dependency arrow routing | `src/ui/linkPath.ts` |
 | Colours, spacing, row height | `src/styles.css` (`:root`) |
@@ -83,4 +86,5 @@ render. Neither builds its own.
 
 ## Repo state
 
-Not a git repository yet. `git init` when you're ready to keep history; no remote chosen.
+Git, trunk-based on `main`, pushed to `github.com/avschaefer/planner`. History starts at the
+v1 build; `CHANGELOG.md` tracks what has landed since.

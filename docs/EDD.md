@@ -232,6 +232,7 @@ the table (`ui/reorder.ts`), because its target is an outline position, not a da
 | D-019 | Link drop targets are resolved arithmetically — row = `floor(y / ROW_H)`, end = which half of the bar — over the row's whole width | Hit-testing the bar element via `elementFromPoint` | The bar is a small target in a wide row, and at month zoom it can be two pixels wide. Making the row the target and inferring the relationship from which handle was grabbed and which half was released on turns "aim at a 3px dot" into "drag roughly there", and gets all four of FS/SS/FF/SF out of the mouse with no modal |
 | D-020 | Light theme only; no `prefers-color-scheme` block | Dual light/dark palettes | Two palettes double the cost of every colour decision — six group hues, critical red, float tails, weekend bands — for a tool used in one room. Decided with the user, 2026-09-22 |
 | D-021 | Outline drag-and-drop takes its depth from the pointer's x, bounded by the neighbouring rows | Drop-on-row-to-nest; indent only via Alt+arrow | Dragging sideways to choose the level is what every outliner does, and it makes "into and out of a summary" one gesture instead of two. Bounding the depth by the row above (+1) and the row below stops the drop landing somewhere the outline cannot represent |
+| D-022a | A modified click (Shift / Cmd / Ctrl) in the table is always a selection, never a cell edit | Letting the editor open and the selection change together | Every cell in a dense table opens an editor on click, so the two gestures collide. Selection wins under a modifier because that is the only thing a modified click means anywhere else. Plain clicks keep spreadsheet behaviour: press, drag across rows to sweep a range, or release in place to edit |
 | D-022 | Popovers that open from the task table are portalled to `document.body` | Rendering them in place | The table body is translated to follow the Gantt's scroll, and a CSS transform makes `position: fixed` resolve against the transformed element instead of the viewport. The portal is the fix; the alternative is re-deriving offsets on every scroll |
 
 ## 7. Traceability
@@ -240,6 +241,7 @@ the table (`ui/reorder.ts`), because its target is an outline position, not a da
 |---|---|
 | R-001 | §5 `ProjectList`, §3 `ProjectDoc` |
 | R-002 | §3 `Task`, `engine/ids.ts`, D-018 |
+| R-002a | `engine/ids.ts`, D-018 |
 | R-003 | §3 `Task.parentId/order/collapsed`, §4.4, D-006 |
 | R-004 | §3 `Task.type`, §5 `GanttCanvas` |
 | R-005 | §3.1, D-003, D-014 |
@@ -252,7 +254,7 @@ the table (`ui/reorder.ts`), because its target is an outline position, not a da
 | R-014 | §4.1, D-005 |
 | R-015 | §1, §4.2, D-009 |
 | R-016 | §4.3 |
-| R-017 | §3 `Task.constraint`, §4.2 step 3, D-007 |
+| R-017 | §3 `Task.constraint`, §4.2 step 3, D-007 · shown on the Start cell, released from its date picker |
 | R-018 | §4.4, D-006 |
 | R-019 | *unused* |
 | R-020 | §5 `TaskTable` |
