@@ -7,6 +7,11 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Added
 
+- **Subscriptions.** A 30-day free trial for every account (existing accounts start theirs when billing ships), then $12/year or $2/month through Stripe Checkout. Subscribers manage their card, plan and cancellation in the Stripe Customer Portal. [R-069] [R-070] [R-071]
+- **Lockout.** After the trial, with no live subscription, schedules can't be read, saved, shared or watched live. The database refuses them (402), not just the interface. The account page and sign-out stay open, nothing is deleted, and subscribing restores access at once. A failed payment keeps access while Stripe retries. [R-072]
+- Stripe webhook (`/api/billing/webhook`): signature-verified, idempotent, and the only thing that changes billing state. [R-073]
+- Billing section on the account page: trial days left, plan and renewal date, a past-due warning, upgrade buttons, Manage subscription. [R-074]
+- `docs/BILLING.md`: rules, state model, events, env vars, Stripe setup and test runbook. `npm run verify:db` covers the lockout.
 - **Sharing.** A Share button on every schedule: invite another account by email as *Can edit* or *View only*, change or remove anyone's access, see who has it. Shared schedules appear live in the collaborator's list with a tag, and they can leave. Viewers get a "View only" banner and cannot change anything — enforced in the database, not just the interface. [R-068]
 - Account page: change your email (confirmed by link before it takes effect) and delete your account, behind a warning that names what will be lost and a typed-email confirmation. [R-066]
 - `npm run verify:db` now also covers sharing, roles and account deletion (43 checks); `npm run e2e:accounts` walks two accounts through sharing.
@@ -60,6 +65,8 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Changed
 
+- `profiles.plan` is now `monthly`, `annual` or empty, written by the webhook; the `'free'` placeholder is gone. The account page's Plan row is replaced by the billing section.
+- `npm run dev` also serves the Vercel functions in `api/`.
 - Account page: one wide two-column card that fits without scrolling, a proper back control, sign-out top right, and a small logotype top-left instead of the hero title. [R-066]
 - The editor lock and save are one database function, so the lock holds however the client behaves. [R-064]
 - The hero title is 15% smaller.

@@ -22,7 +22,9 @@ import type {
   TaskType,
   WorkDay,
 } from '../engine/types';
+import { hasAccess } from '../persist/access';
 import { currentAccount, onAuthChange, signOut as authSignOut, type Account } from '../persist/auth';
+import { takeBillingReturn, type BillingReturn } from '../persist/billing';
 import { idbRepo } from '../persist/idbRepo';
 import { removePerson } from '../persist/sharing';
 import { subscribeProject, subscribeProjects } from '../persist/realtime';
@@ -95,6 +97,8 @@ interface State {
   authReady: boolean;
   /** Arrived from a password-reset link: ask for a new password. */
   recovery: boolean;
+  /** Just back from Stripe; the profile page waits for the webhook. */
+  billingReturn: BillingReturn | null;
   projects: ProjectSummary[];
   doc: ProjectDoc | null;
   schedule: ScheduleResult | null;
@@ -119,6 +123,9 @@ interface State {
   openProfile(): void;
   closeProfile(): void;
   setAccount(account: Account): void;
+  /** Re-read the account from the database — after Stripe, or a refused write. */
+  refreshAccount(): Promise<void>;
+  clearBillingReturn(): void;
   endRecovery(): void;
   signOut(): Promise<void>;
   createProject(name: string): Promise<void>;
@@ -341,6 +348,9 @@ export const useStore = create<State>((set, get) => {
       lose(error.editorId ?? null);
       get().notify('Someone else is editing this schedule. Your last change was not saved.');
       void resync();
+    } else if (error.status === 402) {
+      get().notify('Your trial or subscription has ended. Your last change was not saved.');
+      void get().refreshAccount();
     } else if (error.status === 403) {
       get().notify("You don't have permission to change this schedule.");
     } else {
@@ -414,6 +424,7 @@ export const useStore = create<State>((set, get) => {
     account: null,
     authReady: !isShared,
     recovery: false,
+    billingReturn: null,
 
     /*
      * Local builds go straight to the project list. Shared builds first check
@@ -422,6 +433,8 @@ export const useStore = create<State>((set, get) => {
      */
     async init() {
       if (isShared) {
+        const back = takeBillingReturn();
+        if (back) set({ billingReturn: back, view: 'profile' });
         detachAuth ??= onAuthChange((event, account) => {
           if (event === 'PASSWORD_RECOVERY') set({ recovery: true });
           if (!account) {
@@ -452,6 +465,27 @@ export const useStore = create<State>((set, get) => {
 
     setAccount(account) {
       set({ account });
+    },
+
+    async refreshAccount() {
+      if (!isShared) return;
+      const before = get().account;
+      const account = await currentAccount().catch(() => null);
+      if (!account) return;
+      const had = before?.billing ? hasAccess(before.billing) : false;
+      const has = account.billing ? hasAccess(account.billing) : false;
+      set({ account });
+      if (had && !has && get().doc) {
+        // Locked mid-session: stop editing; the lockout screen takes over.
+        get().closeProject();
+      } else if (!had && has) {
+        // Unlocked: the database shows the schedules again.
+        void repo.list().then((projects) => set({ projects }));
+      }
+    },
+
+    clearBillingReturn() {
+      set({ billingReturn: null });
     },
 
     endRecovery() {

@@ -1,6 +1,6 @@
 # ADMIN — Marga
 
-**Last updated:** 2026-09-23
+**Last updated:** 2026-09-24
 
 ---
 
@@ -39,10 +39,15 @@ local path (`VITE_FORCE_LOCAL=1`).
 
 | Check | Command |
 |---|---|
-| Database access rules, live | `npm run verify:db` — two throwaway accounts, 43 checks (isolation, sharing, roles, lock, deletion), cleaned up after |
+| Database access rules, live | `npm run verify:db` — two throwaway accounts, ~65 checks (isolation, sharing, roles, lock, billing lockout, deletion), cleaned up after |
+| Billing, end to end | `stripe listen --forward-to localhost:5173/api/billing/webhook` + `npm run dev` — runbook in `docs/BILLING.md` §7 |
 | Accounts and sharing in a browser, live | `npm run dev`, then `npm run e2e:accounts` (stop the dev server before `npm run e2e`, which needs its own local-mode server) |
 
 Both need `SUPABASE_SECRET_KEY` in `.env.local` to create and delete their test accounts.
+
+`npm run dev` also serves the functions in `api/` (a Vite plugin in `vite.config.ts`), reading the
+server-only variables from `.env.local`. Every variable, and which Vercel environments need it, is
+in `docs/BILLING.md` §5.
 
 ### Supabase settings that live only in the dashboard
 
@@ -50,10 +55,17 @@ Authentication → URL Configuration: Site URL `https://marga-planner.vercel.app
 `https://marga-planner.vercel.app/**` and `http://localhost:5173/**`. Authentication → Emails →
 SMTP: a real sender before real users. Schema changes are migrations in `supabase/migrations/`.
 
+### Stripe settings that live only in the dashboard
+
+Product and prices, the webhook endpoint and its events, Customer Portal, failed-payment retries and
+receipts — the full checklist is `docs/BILLING.md` §6.
+
 ## Layout
 
 ```
-docs/            PRD.md, EDD.md, ADMIN.md, STATUS.md
+docs/            PRD.md, EDD.md, ADMIN.md, STATUS.md, BILLING.md
+api/             Vercel functions: billing/checkout.ts  billing/portal.ts  billing/webhook.ts
+                 _billing.ts (pure rules)  _stripe.ts  _supabase.ts (service role)  + tests
 scripts/         verify-rls.mjs — live check of the database's access rules
 supabase/        migrations/
 e2e/             Playwright browser smoke tests
@@ -62,7 +74,7 @@ src/
                  calendar.test.ts  schedule.test.ts  predecessors.test.ts
   store/         store.ts (document, undo stack, transient UI state)  store.test.ts
   persist/       repo.ts (ScheduleRepo interface)  idbRepo.ts  supabaseRepo.ts
-                 realtime.ts  lock.ts
+                 realtime.ts  lock.ts  auth.ts  sharing.ts  access.ts  billing.ts
   ui/            ScheduleView  TaskTable  Gantt  DateField  LinkPopover  Settings  ProjectList
                  colors.ts  exportPng.ts  icons.tsx  linkPath.ts  measure.ts  reorder.ts
                  rows.ts  settings.ts  timeline.ts
@@ -91,6 +103,9 @@ render. Neither builds its own.
 | Palettes, bar/milestone formatting, persistence | `src/ui/settings.ts` |
 | PNG export of the chart | `src/ui/exportPng.ts` |
 | Accounts, sign-in, sessions | `src/persist/auth.ts`, `src/ui/AuthScreen.tsx`, `src/ui/ProfilePage.tsx` |
+| Who has access (trial / active / expired) | `private.has_access()` in `supabase/migrations/0006_billing.sql`; mirrored in `src/persist/access.ts` |
+| Checkout, Portal, webhook | `api/billing/*.ts`, `api/_stripe.ts` (`syncCustomer`) |
+| Billing UI, lockout screen | `src/ui/BillingSection.tsx`, `src/ui/LockoutScreen.tsx` |
 | Shared persistence and live sync | `src/persist/supabaseRepo.ts`, `src/persist/realtime.ts` |
 | Editor lock rule (shared by client and API) | `src/persist/lock.ts` |
 | Database schema | `supabase/migrations/0001_init.sql` |
@@ -104,7 +119,7 @@ render. Neither builds its own.
 |---|---|
 | Git | Trunk-based. Commit and push directly to `main`. No feature branches, no PRs |
 | Commits | Conventional commits with requirement IDs — `feat(engine): backward pass and total float (R-010)` |
-| Scopes | `engine`, `store`, `ui`, `persist`, `docs` |
+| Scopes | `engine`, `store`, `ui`, `persist`, `billing`, `docs` |
 | Docs | Markdown. `STATUS.md` updated whenever Now/Next changes |
 | Requirements | New requirement → new `R-` ID in PRD.md → new row in the EDD traceability table |
 | Tests | Engine and store changes land with their tests in the same commit |

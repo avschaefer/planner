@@ -1,12 +1,19 @@
 # STATUS — Marga
 
-**Phase:** live at https://marga-planner.vercel.app with user accounts · all suites green
+**Phase:** live at https://marga-planner.vercel.app with user accounts · subscriptions built in Stripe test mode, not yet shipped · all suites green
 **Updated:** 2026-09-24
 
 ---
 
 ## Now
 
+- [ ] **Ship billing** (owner): Stripe Dashboard setup in test mode (`docs/BILLING.md` §6) → the
+      Vercel env vars (§5) → apply `supabase/migrations/0006_billing.sql` → deploy. The migration
+      starts every existing account's 30-day trial, so run it when you mean it.
+- [ ] Walk the billing paths with the Stripe CLI and test clocks (`docs/BILLING.md` §7.3), and run
+      `npm run verify:db` against the migrated project.
+- [ ] Go live: repeat the Stripe setup in live mode; live key, webhook secret and price IDs in
+      Production only.
 - [ ] **Supabase → Authentication → URL Configuration** (owner, dashboard only): Site URL
       `https://marga-planner.vercel.app`; Redirect URLs `https://marga-planner.vercel.app/**` and
       `http://localhost:5173/**`. Until this is set, confirmation and reset links point at localhost.
@@ -16,6 +23,8 @@
 - [ ] **Plan a real program in it** and see what breaks.
 
 ## Recently completed
+
+**2026-09-24 — subscription billing (R-069 – R-074).** A 30-day trial, then $12/year or $2/month on Stripe Checkout, with the Customer Portal for card changes, plan switches and cancellation. The lockout is enforced in the database (reads, writes, sharing and realtime; a direct write gets 402) and data is never deleted. A signed, idempotent webhook is the only writer. Unit and browser suites green; the live database checks and Stripe runbook wait on keys. Spec: `docs/BILLING.md`.
 
 **2026-09-24 — sharing and account management.** Share by email as editor or viewer, live shared lists, leave a shared schedule, change email, delete account with typed confirmation, sign-up fits one screen. 43 database checks and a two-account browser walk pass live.
 

@@ -112,6 +112,10 @@ function repoError(error: { message: string; code?: string }): RepoError {
     e.status = 409;
     e.editorId = locked[1];
     e.message = 'Someone else is editing this schedule.';
+  } else if (error.code === 'PT402' || error.message === 'payment_required') {
+    // The trial or subscription has lapsed (migration 0006).
+    e.status = 402;
+    e.message = 'Your trial or subscription has ended.';
   } else if (error.code === '42501' || /row-level security|permission denied/i.test(error.message)) {
     e.status = 403;
   }

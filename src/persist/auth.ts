@@ -1,4 +1,5 @@
 import type { AuthChangeEvent } from '@supabase/supabase-js';
+import type { Billing, Plan } from './access';
 import { isShared, supabase } from './supabaseRepo';
 
 /**
@@ -16,8 +17,12 @@ export interface Account {
   id: string;
   email: string;
   displayName: string | null;
-  /** Written only by the server (a future billing webhook), never the client. */
-  plan: string;
+  /**
+   * Trial and subscription, written only by the Stripe webhook (the database
+   * refuses the browser). Null only if the profile row could not be read,
+   * which the app treats as no access — the database would agree.
+   */
+  billing: Billing | null;
 }
 
 export const MIN_PASSWORD = 8;
@@ -35,12 +40,25 @@ function friendly(message: string): string {
 
 async function loadAccount(user: { id: string; email?: string } | null | undefined): Promise<Account | null> {
   if (!user) return null;
-  const { data } = await supabase().from('profiles').select('display_name, plan').eq('id', user.id).maybeSingle();
+  const { data } = await supabase()
+    .from('profiles')
+    .select('display_name, plan, trial_ends_at, subscription_status, current_period_end, cancel_at_period_end, stripe_customer_id')
+    .eq('id', user.id)
+    .maybeSingle();
   return {
     id: user.id,
     email: user.email ?? '',
     displayName: (data?.display_name as string | null) ?? null,
-    plan: (data?.plan as string | undefined) ?? 'free',
+    billing: data
+      ? {
+          trialEndsAt: data.trial_ends_at as string,
+          status: (data.subscription_status as string | null) ?? null,
+          plan: (data.plan as Plan | null) ?? null,
+          currentPeriodEnd: (data.current_period_end as string | null) ?? null,
+          cancelAtPeriodEnd: data.cancel_at_period_end === true,
+          hasCustomer: Boolean(data.stripe_customer_id),
+        }
+      : null,
   };
 }
 

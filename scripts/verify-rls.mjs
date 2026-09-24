@@ -3,7 +3,9 @@
  *
  * Creates two throwaway, pre-confirmed accounts with the secret key, then acts
  * as each through the publishable key — exactly as the browser does — and
- * checks isolation, the editor lock, protected columns and realtime. Deletes
+ * checks isolation, the editor lock, protected columns, realtime, sharing and
+ * the billing lockout (trial expiry is simulated by moving trial_ends_at with
+ * the secret key, exactly as only the webhook could). Deletes
  * both accounts (and so their data) at the end, pass or fail.
  *
  *   npm run verify:db      (reads .env.local; needs SUPABASE_SECRET_KEY)
@@ -40,8 +42,10 @@ try {
   const pid = 'verify-' + stamp;
   const save = (c, client, name = 'Verify project') => c.rpc('save_project', { p_id: pid, p_name: name, p_data_date: '2026-09-24', p_tasks: [{ id: 't', name: 'x', type: 'task', duration: 3, parentId: null, order: 0 }], p_links: [], p_updated_at: new Date().toISOString(), p_client_id: client });
 
-  const p = await A.from('profiles').select('display_name, plan').single();
-  check('profile row created on signup', p.data?.display_name === 'Verify A' && p.data?.plan === 'free', JSON.stringify(p.data));
+  const p = await A.from('profiles').select('display_name, plan, trial_ends_at, subscription_status').single();
+  const trialDays = (new Date(p.data?.trial_ends_at).getTime() - Date.now()) / 86400000;
+  check('profile row created on signup', p.data?.display_name === 'Verify A' && p.data?.plan === null, JSON.stringify(p.data));
+  check('new account gets a 30-day trial', trialDays > 29.9 && trialDays < 30.01 && p.data?.subscription_status === null, trialDays.toFixed(3));
 
   let r = await save(A, 'a1');
   check('owner can create a project', !r.error, r.error?.message);
@@ -135,6 +139,82 @@ try {
   r = await A.rpc('remove_member', { p_id: pid, p_user: ids[1] });
   r = await B.from('projects').select('id').eq('id', pid);
   check('owner can remove a collaborator', r.data?.length === 0, JSON.stringify(r.data));
+
+  // ---- billing: the lockout is enforced by the database ----
+  const setBilling = (id, fields) => admin.from('profiles').update(fields).eq('id', id);
+  const PAST = new Date(Date.now() - 60_000).toISOString();
+  const TRIAL = new Date(Date.now() + 30 * 86400000).toISOString();
+  const is402 = (res) => res.error?.code === 'PT402';
+
+  for (const col of [{ trial_ends_at: '2099-01-01T00:00:00Z' }, { subscription_status: 'active' }, { stripe_customer_id: 'cus_fake' }, { current_period_end: '2099-01-01T00:00:00Z' }]) {
+    r = await A.from('profiles').update(col).eq('id', ids[0]).select();
+    check(`user cannot write ${Object.keys(col)[0]}`, !!r.error, r.error?.message ?? JSON.stringify(r.data));
+  }
+  r = await A.from('stripe_events').select('id');
+  check('webhook event log is invisible to users', !!r.error || r.data?.length === 0, r.error?.message ?? JSON.stringify(r.data));
+
+  await A.rpc('share_project', { p_id: pid, p_email: emails[1], p_role: 'editor' });
+  await setBilling(ids[0], { trial_ends_at: PAST, subscription_status: null });
+  r = await A.from('projects').select('id');
+  check('expired trial: reads nothing', r.data?.length === 0, JSON.stringify(r.data));
+  r = await save(A, 'a3');
+  check('expired trial: save refused with 402', is402(r), r.error?.code + ' ' + r.error?.message);
+  r = await A.rpc('claim_editor', { p_id: pid, p_client_id: 'a3', p_force: true });
+  check('expired trial: editor lock refused with 402', is402(r), r.error?.code + ' ' + r.error?.message);
+  r = await A.from('projects').update({ name: 'Locked write' }).eq('id', pid).select();
+  check('expired trial: direct update changes nothing', (r.data ?? []).length === 0, r.error?.message ?? JSON.stringify(r.data));
+  r = await A.from('projects').delete().eq('id', pid).select();
+  check('expired trial: cannot delete', (r.data ?? []).length === 0, r.error?.message ?? JSON.stringify(r.data));
+  r = await A.rpc('save_project', { p_id: pid + '-new', p_name: 'New', p_data_date: '2026-09-24', p_tasks: [], p_links: [], p_updated_at: new Date().toISOString(), p_client_id: 'a3' });
+  check('expired trial: cannot create a schedule', is402(r), r.error?.code + ' ' + r.error?.message);
+  r = await A.rpc('share_project', { p_id: pid, p_email: emails[1], p_role: 'viewer' });
+  check('expired trial: cannot share', is402(r), r.error?.code + ' ' + r.error?.message);
+  r = await A.rpc('project_people', { p_id: pid });
+  check('expired trial: sees no collaborators', (r.data ?? []).length === 0, JSON.stringify(r.data));
+  r = await A.from('project_members').select('project_id');
+  check('expired trial: sees no memberships', (r.data ?? []).length === 0, JSON.stringify(r.data));
+  r = await A.from('profiles').select('trial_ends_at').single();
+  check('expired trial: can still read own profile', !!r.data, r.error?.message);
+  r = await A.from('profiles').update({ display_name: 'Still me' }).eq('id', ids[0]).select();
+  check('expired trial: can still edit own name', !r.error && r.data?.length === 1, r.error?.message);
+
+  r = await B.from('projects').select('name').eq('id', pid);
+  check("a collaborator in trial keeps the lapsed owner's schedule", r.data?.length === 1, JSON.stringify(r.data));
+  await B.rpc('claim_editor', { p_id: pid, p_client_id: 'b1', p_force: true });
+
+  // Realtime: the locked owner hears nothing; the collaborator does.
+  const heard2 = { A: 0, B: 0 };
+  const sub2 = (c, key) => new Promise((res) => c.channel('b-' + key).on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'projects', filter: `id=eq.${pid}` }, () => heard2[key]++).subscribe((st) => st === 'SUBSCRIBED' && res()));
+  await Promise.all([sub2(A, 'A'), sub2(B, 'B')]);
+  await new Promise((res) => setTimeout(res, 1500));
+  r = await save(B, 'b1', 'Edited by collaborator');
+  check('collaborator in trial can still save it', !r.error, r.error?.message);
+  await new Promise((res) => setTimeout(res, 4000));
+  check('expired trial: no live updates', heard2.A === 0, 'events ' + heard2.A);
+  check('collaborator still receives live updates', heard2.B > 0, 'events ' + heard2.B);
+  await A.removeAllChannels(); await B.removeAllChannels();
+
+  await setBilling(ids[1], { trial_ends_at: PAST });
+  r = await B.from('projects').select('id').eq('id', pid);
+  check('a lapsed collaborator loses shared schedules too', r.data?.length === 0, JSON.stringify(r.data));
+  await setBilling(ids[1], { trial_ends_at: TRIAL });
+
+  await setBilling(ids[0], { subscription_status: 'active', plan: 'annual' });
+  r = await A.from('projects').select('name').eq('id', pid);
+  check('subscribing restores access, data intact', r.data?.[0]?.name === 'Edited by collaborator', JSON.stringify(r.data));
+  await A.rpc('claim_editor', { p_id: pid, p_client_id: 'a4', p_force: true });
+  r = await save(A, 'a4');
+  check('subscribed: can save again', !r.error, r.error?.message);
+  await setBilling(ids[0], { subscription_status: 'past_due' });
+  r = await A.from('projects').select('id');
+  check('past_due keeps access while Stripe retries', r.data?.length === 1, JSON.stringify(r.data));
+  for (const status of ['canceled', 'unpaid', 'incomplete_expired']) {
+    await setBilling(ids[0], { subscription_status: status });
+    r = await A.from('projects').select('id');
+    check(`${status} locks`, r.data?.length === 0, JSON.stringify(r.data));
+  }
+  await setBilling(ids[0], { trial_ends_at: TRIAL, subscription_status: null, plan: null });
+  await A.rpc('remove_member', { p_id: pid, p_user: ids[1] });
 
   // ---- deleting an account ----
   await A.rpc('share_project', { p_id: pid, p_email: emails[1], p_role: 'editor' });

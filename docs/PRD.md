@@ -1,6 +1,6 @@
 # PRD — Marga
 
-**Status:** v4 shared backend · **Last updated:** 2026-09-23 · **Owner:** av
+**Status:** v5 subscriptions · **Last updated:** 2026-09-24 · **Owner:** av
 
 ---
 
@@ -120,11 +120,24 @@ Priority: **P0** = the app is pointless without it · **P1** = needed before it'
 | R-063 | Live viewing | A change made by one person appears on every other connected screen within about a second, with no refresh | P1 |
 | R-064 | One editor at a time | The first person to edit holds the editor lock; everyone else sees a read-only banner and can take over with one click. Enforced in the database (save_project, claim_editor), so it holds however the client behaves. Abandoned 90s after its holder goes quiet | P1 |
 | R-065 | Every schedule belongs to an account | Row-level security: a schedule is visible only to its members (project_members) and writable only by owners and editors. A signed-out client reads nothing. Verified against the live project by `npm run verify:db` | P1 |
-| R-066 | Profile page | Name and email (editable — an email change is confirmed by link before it takes effect), plan (read-only), change password, sign out, and delete account behind a warning that names what is lost and a typed-email confirmation. Fits without scrolling | P2 |
+| R-066 | Profile page | Name and email (editable — an email change is confirmed by link before it takes effect), subscription (R-074), change password, sign out, and delete account behind a warning that names what is lost and a typed-email confirmation. Fits without scrolling | P2 |
 | R-068 | Share a schedule with other accounts | The owner shares by email as **Can edit** or **View only**, changes or removes anyone's access, and sees who has it. A collaborator sees it in their list with a tag, live, and can leave. Viewers read but never write — enforced in the database. Two people who use it at different times both have editing control; the editor lock covers the rest | P1 |
-| R-067 | Ready for subscriptions | Each account has a server-owned `profiles.plan`; users cannot write it. No shared secret exists that would let one subscription serve many people | P2 |
+| R-067 | Ready for subscriptions | Each account has a server-owned `profiles.plan`; users cannot write it. No shared secret exists that would let one subscription serve many people. *Fulfilled by R-069 – R-074* | P2 |
 
-**Totals: 49 requirements — P0: 18 · P1: 22 · P2: 9**
+### 5.7 Billing
+
+Full spec, state model and test runbook: [`BILLING.md`](BILLING.md).
+
+| ID | Requirement | Acceptance criteria | Pri |
+|---|---|---|---|
+| R-069 | 30-day trial | Every new account has full access for 30 days from creation with no card. Accounts that existed before billing get a fresh 30 days from when it ships. No free tier and no feature gating | P1 |
+| R-070 | Subscribe on Stripe Checkout | $12/year (the default, emphasised) or $2/month, on Stripe's hosted Checkout — no card form in the app. Subscribing mid-trial keeps the remaining trial days; the first charge is when the trial would have ended | P1 |
+| R-071 | Manage on the Stripe Customer Portal | A subscriber updates their card, switches between monthly and annual, or cancels (at period end), on Stripe's hosted Portal | P1 |
+| R-072 | Lockout after the trial | With no live subscription after the trial, the app is locked: no schedule can be read, written, shared or watched live, enforced in the database whatever the client does (a direct API write gets 402). The account page and sign-out stay reachable. Nothing is deleted; subscribing restores access immediately. A failed payment keeps access while Stripe retries (`past_due`); access ends when the subscription does. Access is per caller: a paying collaborator keeps a schedule whose owner lapsed | P1 |
+| R-073 | Stripe is the source of truth | Subscription state changes only through a signature-verified webhook, never from a redirect or client input. Redelivered or out-of-order events leave the same result. One Stripe customer per account | P1 |
+| R-074 | Billing on the account page | Shows trial with days left, active with plan and renewal (or cancel) date, past-due warning, or expired; upgrade buttons for annual and monthly; "Manage subscription" for anyone who has been a customer. After Checkout, waits for the webhook before showing the subscription | P2 |
+
+**Totals: 55 requirements — P0: 18 · P1: 27 · P2: 10**
 
 ---
 
@@ -154,7 +167,7 @@ Explicitly not built, at any priority:
 | Procurement | WBS/OBS management screens |
 | Complex calendar rules (shift patterns, per-activity calendars) | Administrative/configuration screens |
 | Baselines and planned-vs-actual variance | Progress tracking / percent complete |
-| Billing, marketing pages *(accounts are in — R-061; billing is prepared for, not built — R-067)* | Concurrent multi-user editing *(one editor at a time — R-064)* |
+| Marketing pages; coupons, team/multi-seat plans, Stripe Tax, custom billing emails *(billing is in — R-069 – R-074)* | Concurrent multi-user editing *(one editor at a time — R-064)* |
 | Reporting, exports to PDF/XER/MPP *(PNG of the chart is in — R-058)* | Mobile layout |
 
 Holidays are out entirely — the calendar is Mon–Fri with no exception list.

@@ -1,15 +1,18 @@
 import { useState, type FormEvent } from 'react';
 import { changeEmail, MIN_PASSWORD, setPassword, updateDisplayName } from '../persist/auth';
 import { useStore } from '../store/store';
+import { BillingSection } from './BillingSection';
 import { Button } from './Button';
 import { DeleteAccountModal } from './DeleteAccountModal';
 import { GlassPage } from './GlassPage';
 import * as Icon from './icons';
 
 /**
- * The account, and only what a person needs from it: name, email, plan,
- * password, and a way out. The plan is shown but not editable — it is written
- * by the server when billing exists.
+ * The account, and only what a person needs from it: name, email, password,
+ * the subscription, and a way out. Billing status is read-only here — it is
+ * written by the Stripe webhook — and changed only on Stripe's own pages.
+ * Reachable while locked out, so a lapsed account can always subscribe,
+ * sign out, or delete itself.
  *
  * Two columns in one wide card, so the whole page fits without scrolling.
  */
@@ -101,10 +104,6 @@ export function ProfilePage() {
             <span>Email</span>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
           </label>
-          <div className="account-plan">
-            <span>Plan</span>
-            <b>{account.plan === 'free' ? 'Free' : account.plan}</b>
-          </div>
           <Button variant="secondary" type="submit" disabled={saving || !(nameChanged || emailChanged)}>
             {saving ? 'Saving…' : 'Save changes'}
           </Button>
@@ -137,6 +136,8 @@ export function ProfilePage() {
           </Button>
         </form>
       </div>
+
+      <BillingSection />
 
       {error && (
         <p className="auth-error account-error" role="alert">

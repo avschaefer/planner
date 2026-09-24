@@ -1112,9 +1112,43 @@ input {
 .account-plan b { font-weight: 560; color: var(--dim); }
 .account-error { margin-top: 18px; }
 
+/* Subscription: status on the left, the actions on the right, one row. */
+.account-billing {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(26, 25, 23, 0.08);
+}
+.account-billing h3 { margin: 0 0 8px; font-size: 13px; font-weight: 620; }
+.billing-state { display: flex; flex-direction: column; gap: 3px; font-size: 13px; }
+.billing-state b { font-weight: 600; color: var(--text); }
+.billing-state span { font-size: 12.5px; line-height: 1.5; color: var(--dim); }
+.billing-state span.warn { color: var(--danger); }
+.billing-state.expired b { color: var(--danger); }
+.billing-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex: none; }
+.billing-upgrade { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.billing-upgrade.stacked { flex-direction: column; align-items: stretch; }
+.billing-upgrade.stacked .btn { width: 100%; height: 36px; }
+.billing-upgrade .auth-error { flex-basis: 100%; }
+.billing-save {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 640;
+  letter-spacing: 0.02em;
+  background: rgba(255, 255, 255, 0.22);
+}
+
 @media (max-width: 720px) {
   .account-grid { grid-template-columns: 1fr; }
   .account-grid > form + form { border-left: 0; padding-left: 0; border-top: 1px solid rgba(26, 25, 23, 0.08); padding-top: 22px; }
+  .account-billing { flex-direction: column; align-items: stretch; }
+  .billing-actions { align-items: stretch; }
+  .billing-upgrade { justify-content: stretch; }
 }
 
 /* ---------- rename a schedule from the toolbar ---------- */

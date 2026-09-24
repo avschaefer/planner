@@ -36,6 +36,8 @@ npm run dev          # http://localhost:5173
 - **Milestones**, undo/redo, keyboard-first editing, day/week/month zoom.
 - **Accounts, if you want them.** Sign in with email and password; your schedules are yours, with live updates on
   every screen and one editor at a time with a take-over button.
+- **Subscriptions.** A 30-day trial, then $12/year or $2/month on Stripe Checkout and the Customer
+  Portal. See [`docs/BILLING.md`](docs/BILLING.md).
 
 Deliberately not built: resources, cost, earned value, WBS/OBS, progress tracking, baselines,
 complex calendars, authentication.
@@ -50,6 +52,9 @@ Optional — without Supabase values the app runs entirely in your browser.
 
 Sign-in is email and password with a persistent session. Row-level security decides who can see
 and change each schedule; `npm run verify:db` proves it against the live project.
+
+Billing adds Stripe. The env vars, Dashboard setup and a test runbook are in
+[`docs/BILLING.md`](docs/BILLING.md).
 
 ## Commands
 
