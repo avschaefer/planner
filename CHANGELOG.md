@@ -51,7 +51,7 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Changed
 
-- Wordmark: "MARGA" as spaced capitals in Outfit beside the mark, and a hairline hero "MARGA" on the home background that is never covered: it runs up the empty left margin like a book spine on wide screens, and sits above the card where that margin is too thin. The passcode page now matches — still aurora, frosted card, same logotype and hero word.
+- Wordmark: "MARGA" as spaced capitals in Outfit beside the mark, and a large hairline hero "MARGA" above the card on both the home and passcode pages, sized to the window so it is never clipped. The passcode page now matches — still aurora, frosted card, same logotype and hero word.
 - The home page background is a living aurora — flowing ribbons and soft colour fields in the accent with lilac, rose, peach and sky — behind a frosted-glass card. Seeded afresh each visit, drawn on a tiny canvas that CSS scales and blurs, and still under reduced-motion settings.
 - Dependency lines use one elbow — right along the predecessor's row, then down into the successor — as scheduling tools draw them. Lag lengthens the horizontal run. [R-035]
 - Summaries are drawn as brackets with a downward leg at each end in both profiles, so they never read as task bars.

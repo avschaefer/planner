@@ -80,7 +80,8 @@ const UNLOCK_PAGE = `<!doctype html>
   * { box-sizing: border-box; }
   html, body { height: 100%; }
   body {
-    margin: 0; display: grid; place-items: center; overflow: hidden;
+    margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100%; padding: 24px 16px; overflow-x: hidden; overflow-y: auto;
     background: var(--bg); color: var(--text); font: 13px/1.45 var(--font);
     -webkit-font-smoothing: antialiased;
   }
@@ -93,12 +94,14 @@ const UNLOCK_PAGE = `<!doctype html>
       linear-gradient(160deg, transparent 30%, rgba(168,192,244,.35) 50%, transparent 70%);
   }
   .hero {
-    position: fixed; left: 50%; bottom: 3.5vh; transform: translateX(-50%); z-index: 0;
-    font-family: var(--display); font-weight: 150; font-size: clamp(88px, 17vw, 300px);
-    line-height: .9; letter-spacing: .3em; padding-left: .3em; text-transform: uppercase;
-    white-space: nowrap; user-select: none; pointer-events: none; opacity: .8;
-    background: linear-gradient(180deg, rgba(255,255,255,.92) 10%, rgba(255,255,255,.22) 95%);
+    position: relative; z-index: 1; margin: 0 0 20px; user-select: none; pointer-events: none;
+    font-family: var(--display); font-weight: 150; font-size: clamp(56px, 15vw, 200px);
+    line-height: .9; letter-spacing: .3em; text-transform: uppercase; white-space: nowrap;
+    /* Padding balances the trailing tracking and keeps background-clip from shaving glyph edges. */
+    padding: .08em 0 .12em .3em; max-width: 100%; opacity: .85;
+    background: linear-gradient(180deg, rgba(255,255,255,.95) 10%, rgba(255,255,255,.3) 95%);
     -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 1px 0 rgba(255,255,255,.35)) drop-shadow(0 12px 40px rgba(79,91,213,.1));
   }
   form {
     position: relative; z-index: 1; width: 340px; padding: 32px 30px 26px;

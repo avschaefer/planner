@@ -907,7 +907,7 @@ input {
 /* ---------- home: colour fields behind frosted glass ---------- */
 
 .home { position: relative; flex: 1; min-height: 0; overflow: hidden; background: var(--bg); }
-.home-scroll { position: relative; z-index: 1; height: 100%; overflow: auto; padding: 72px 24px 48px; }
+.home-scroll { position: relative; z-index: 1; height: 100%; overflow: auto; padding: 32px 24px 48px; }
 
 .home-bg { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
 
@@ -940,36 +940,17 @@ input {
   opacity: 0.85;
 }
 
-.hero-side {
-  position: absolute;
-  top: 50%;
-  /* Centred in the left margin: the card is 720px wide and centred. */
-  left: calc((100vw - 720px) / 4);
-  writing-mode: vertical-rl;
-  transform: translate(-50%, -50%) rotate(180deg);
-  /* Sized by height, so the whole word always fits the window. */
-  font-size: min(15vh, 150px);
-  letter-spacing: 0.3em;
-  padding-top: 0.3em; /* balances the trailing tracking so the word centres */
-  background-image: linear-gradient(90deg, rgba(255, 255, 255, 0.95) 5%, rgba(255, 255, 255, 0.25) 95%);
-}
-
 .hero-top {
-  display: none;
   text-align: center;
-  font-size: clamp(56px, 12vw, 120px);
-  letter-spacing: 0.26em;
-  padding-left: 0.26em;
-  margin: 0 auto 28px;
+  font-size: clamp(72px, 15vw, 220px);
+  letter-spacing: 0.3em;
+  /* Balances the trailing tracking so the word centres; the vertical padding
+     stops background-clip:text from shaving the glyph edges. */
+  padding: 0.08em 0 0.12em 0.3em;
+  margin: 0 auto 20px;
   width: fit-content;
+  max-width: 100%;
   background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 10%, rgba(255, 255, 255, 0.3) 95%);
-}
-
-/* Below this the left margin is too thin for the spine: move it above. */
-@media (max-width: 1080px) {
-  .hero-side { display: none; }
-  .hero-top { display: block; }
-  .home-scroll { padding-top: 40px; }
 }
 
 /* Film grain keeps the gradients from banding and gives the glass a surface. */
