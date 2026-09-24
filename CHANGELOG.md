@@ -50,6 +50,7 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Changed
 
+- The home page sits on slow-drifting colour fields drawn from the live palette, behind a frosted-glass card, with a faint film grain. Only transforms animate, and motion stops under reduced-motion settings.
 - Dependency lines use one elbow — right along the predecessor's row, then down into the successor — as scheduling tools draw them. Lag lengthens the horizontal run. [R-035]
 - Summaries are drawn as brackets with a downward leg at each end in both profiles, so they never read as task bars.
 - Constraint wording is standard: "Start No Earlier Than", and "Remove constraint" in place of "Release to logic". [R-017]
