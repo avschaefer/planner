@@ -15,6 +15,11 @@ export type MilestoneLabel = 'none' | 'name' | 'date' | 'both';
 export interface Settings {
   accent: AccentId;
   groups: GroupsId;
+  /** Colour bars by the summary group they sit in, or by what they are. */
+  colorMode: ColorMode;
+  summaryColor: TypeColorId;
+  taskColor: TypeColorId;
+  milestoneColor: TypeColorId;
   critical: CriticalId;
   barShape: BarShape;
   barText: TextPos;
@@ -31,6 +36,10 @@ export interface Settings {
 export const DEFAULTS: Settings = {
   accent: 'indigo',
   groups: 'default',
+  colorMode: 'group',
+  summaryColor: 'charcoal',
+  taskColor: 'indigo',
+  milestoneColor: 'amber',
   critical: 'red',
   barShape: 'rounded',
   barText: 'right',
@@ -51,6 +60,28 @@ type Vars = Record<string, string>;
 export type AccentId = 'indigo' | 'blue' | 'teal' | 'violet' | 'slate';
 export type GroupsId = 'default' | 'muted' | 'mono';
 export type CriticalId = 'red' | 'amber' | 'magenta';
+export type ColorMode = 'group' | 'type';
+export type TypeColorId =
+  | 'charcoal' | 'slate' | 'indigo' | 'blue' | 'teal' | 'violet' | 'rose' | 'amber' | 'moss';
+
+/**
+ * Single colours for "colour by type": every summary one colour, every
+ * activity another, every milestone a third. Activities are drawn as a tint of
+ * their colour with the colour as the edge, matching how group hues work.
+ */
+export const TYPE_COLORS: Array<{ id: TypeColorId; label: string; hex: string }> = [
+  { id: 'charcoal', label: 'Charcoal', hex: '#2f3338' },
+  { id: 'slate', label: 'Slate', hex: '#5b6a8a' },
+  { id: 'indigo', label: 'Indigo', hex: '#4f5bd5' },
+  { id: 'blue', label: 'Blue', hex: '#1f6fd0' },
+  { id: 'teal', label: 'Teal', hex: '#0f847e' },
+  { id: 'violet', label: 'Violet', hex: '#7e46c4' },
+  { id: 'rose', label: 'Rose', hex: '#c2416b' },
+  { id: 'amber', label: 'Amber', hex: '#b0761c' },
+  { id: 'moss', label: 'Moss', hex: '#5a7a26' },
+];
+
+const typeHex = (id: TypeColorId) => (TYPE_COLORS.find((c) => c.id === id) ?? TYPE_COLORS[0]).hex;
 
 const accentVars = (base: string, hover: string): Vars => ({
   '--accent': base,
@@ -154,6 +185,11 @@ export function applyTheme(s: Settings): void {
     ...(ACCENTS.find((a) => a.id === s.accent) ?? ACCENTS[0]).vars,
     ...(GROUPS.find((g) => g.id === s.groups) ?? GROUPS[0]).vars,
     ...(CRITICALS.find((c) => c.id === s.critical) ?? CRITICALS[0]).vars,
+    '--type-summary': typeHex(s.summaryColor),
+    '--type-task': typeHex(s.taskColor),
+    '--type-task-bar': `color-mix(in srgb, ${typeHex(s.taskColor)} 45%, #fff)`,
+    '--type-task-edge': `color-mix(in srgb, ${typeHex(s.taskColor)} 80%, #fff)`,
+    '--type-milestone': typeHex(s.milestoneColor),
   };
   for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
 }

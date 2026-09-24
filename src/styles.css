@@ -882,52 +882,14 @@ input {
 
 .home-bg { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
 
-/* Four fields of the live palette, each on its own slow loop. The periods are
-   deliberately unrelated, so the composition never visibly repeats. */
-.orb {
+/* The aurora canvas is tiny; scaling it up and blurring is what makes it silk.
+   Oversized so the blurred edge never shows the paper behind it. */
+.aurora {
   position: absolute;
-  border-radius: 50%;
-  filter: blur(72px);
-  opacity: 0.5;
-  will-change: transform;
-  animation: 1s ease-in-out infinite alternate;
-}
-.orb-a {
-  width: 46vmax; height: 46vmax; top: -16vmax; left: -12vmax;
-  background: radial-gradient(circle at 38% 38%, color-mix(in srgb, var(--accent) 70%, #fff), var(--accent) 38%, transparent 70%);
-  animation-name: drift-a; animation-duration: 47s;
-}
-.orb-b {
-  width: 40vmax; height: 40vmax; bottom: -14vmax; right: -10vmax;
-  background: radial-gradient(circle at 40% 40%, color-mix(in srgb, var(--grp-1) 65%, #fff), var(--grp-1) 40%, transparent 70%);
-  animation-name: drift-b; animation-duration: 59s; opacity: 0.42;
-}
-.orb-c {
-  width: 30vmax; height: 30vmax; top: 18%; right: 14%;
-  background: radial-gradient(circle at 45% 45%, color-mix(in srgb, var(--grp-3) 60%, #fff), var(--grp-3) 42%, transparent 70%);
-  animation-name: drift-c; animation-duration: 67s; opacity: 0.32;
-}
-.orb-d {
-  width: 26vmax; height: 26vmax; bottom: 6%; left: 20%;
-  /* Amber goes khaki against the paper at full strength; keep it a warm glow. */
-  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--grp-2) 38%, #fff), color-mix(in srgb, var(--grp-2) 70%, #fff) 45%, transparent 70%);
-  animation-name: drift-d; animation-duration: 79s; opacity: 0.3;
-}
-
-/* A faint iridescent sweep turning once every few minutes: the "glass" catch. */
-.sheen {
-  position: absolute;
-  inset: -40%;
-  background: conic-gradient(from 0deg,
-    transparent 0deg,
-    color-mix(in srgb, var(--accent) 22%, transparent) 60deg,
-    transparent 120deg,
-    color-mix(in srgb, var(--grp-1) 18%, transparent) 210deg,
-    transparent 280deg);
-  filter: blur(90px);
-  opacity: 0.55;
-  animation: sheen-turn 180s linear infinite;
-  will-change: transform;
+  inset: -6%;
+  width: 112%;
+  height: 112%;
+  filter: blur(26px) saturate(115%);
 }
 
 /* Film grain keeps the gradients from banding and gives the glass a surface. */
@@ -936,32 +898,6 @@ input {
   inset: 0;
   opacity: 0.06;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-@keyframes drift-a {
-  0% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(14vw, 10vh, 0) scale(1.14); }
-  100% { transform: translate3d(5vw, 22vh, 0) scale(0.94); }
-}
-@keyframes drift-b {
-  0% { transform: translate3d(0, 0, 0) scale(1.05); }
-  50% { transform: translate3d(-16vw, -8vh, 0) scale(0.92); }
-  100% { transform: translate3d(-6vw, -20vh, 0) scale(1.12); }
-}
-@keyframes drift-c {
-  0% { transform: translate3d(0, 0, 0) scale(0.9); }
-  50% { transform: translate3d(-12vw, 14vh, 0) scale(1.18); }
-  100% { transform: translate3d(8vw, 6vh, 0) scale(1); }
-}
-@keyframes drift-d {
-  0% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(18vw, -12vh, 0) scale(1.2); }
-  100% { transform: translate3d(-4vw, -4vh, 0) scale(0.9); }
-}
-@keyframes sheen-turn { to { transform: rotate(360deg); } }
-
-@media (prefers-reduced-motion: reduce) {
-  .orb, .sheen { animation: none; }
 }
 
 /* The card: frosted, lit from above, sitting just off the surface. */
@@ -989,3 +925,19 @@ input {
 .glass .pitem:first-child { border-top-color: rgba(26, 25, 23, 0.07); }
 .glass .pitem:hover { background: rgba(255, 255, 255, 0.6); }
 .glass .empty { background: rgba(255, 255, 255, 0.35); border-color: rgba(26, 25, 23, 0.14); }
+
+
+/* ---------- colour by type ---------- */
+/* Every summary one colour, every activity another, every milestone a third.
+   Critical still overrides, so the critical path stays unmistakable. Scoped to
+   the chart root (not a page ancestor) so the PNG export carries it. */
+
+.gantt.by-type .bar { fill: var(--type-task-bar); stroke: var(--type-task-edge); }
+.gantt.by-type .sumbar { fill: var(--type-summary); }
+.gantt.by-type .ms { fill: var(--type-milestone); }
+.gantt.by-type .bar.critical { fill: var(--crit-bar); stroke: var(--crit-edge); }
+.gantt.by-type .ms.critical { fill: var(--crit); }
+.gantt.by-type .bar.sel,
+.gantt.by-type .ms.sel { stroke: var(--accent); }
+
+.schedule.by-type .trow.summary .tname .label { color: var(--type-summary); }

@@ -34,7 +34,10 @@ export function ScheduleView() {
   const headInnerRef = useRef<HTMLDivElement>(null);
 
   const rows = useMemo(() => visibleRows(doc.tasks), [doc.tasks]);
-  const hues = useMemo(() => groupHues(rows), [rows]);
+  // Colour by type turns group hues off entirely; the chart and the table then
+  // colour each shape by what it is (see .by-type in styles.css).
+  const byType = settings.colorMode === 'type';
+  const hues = useMemo(() => (byType ? new Map<string, number>() : groupHues(rows)), [rows, byType]);
   const tl = useMemo(
     () => buildTimeline(schedule, pxPerDay, viewportWidth),
     [schedule, pxPerDay, viewportWidth],
@@ -292,7 +295,7 @@ export function ScheduleView() {
         </div>
       </div>
 
-      <div className="schedule">
+      <div className={`schedule${byType ? ' by-type' : ''}`}>
         {settings.showTable && (
           <div className="pane-left" style={{ width: leftWidth }}>
             <div className="head" onPointerDown={() => store.clearSelection()}>

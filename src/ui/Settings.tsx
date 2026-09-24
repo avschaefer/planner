@@ -6,6 +6,7 @@ import {
   ACCENTS,
   CRITICALS,
   GROUPS,
+  TYPE_COLORS,
   type MilestoneLabel,
   type MilestoneShape,
   type Settings as S,
@@ -65,6 +66,25 @@ export function SettingsModal({ onClose }: { onClose(): void }) {
     </div>
   );
 
+  /** One colour per kind of shape, for "colour by type". */
+  const typeRow = (label: string, key: 'summaryColor' | 'taskColor' | 'milestoneColor') => (
+    <div className="field">
+      <label>{label}</label>
+      <div className="swatches">
+        {TYPE_COLORS.map((c) => (
+          <button
+            key={c.id}
+            className={`swatch${settings[key] === c.id ? ' on' : ''}`}
+            title={c.label}
+            onClick={() => update({ [key]: c.id })}
+          >
+            <span style={{ background: c.hex }} />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <>
       <div className="modal-scrim" onPointerDown={onClose} />
@@ -97,22 +117,38 @@ export function SettingsModal({ onClose }: { onClose(): void }) {
             </div>
 
             <div className="field">
-              <label>Summary groups</label>
-              <div className="swatches">
-                {GROUPS.map((g) => (
-                  <button
-                    key={g.id}
-                    className={`swatch wide${settings.groups === g.id ? ' on' : ''}`}
-                    title={g.label}
-                    onClick={() => update({ groups: g.id })}
-                  >
-                    {g.swatches.map((c) => (
-                      <span key={c} style={{ background: c }} />
-                    ))}
-                  </button>
-                ))}
-              </div>
+              <label>Colour by</label>
+              {seg('colorMode', [
+                { id: 'group', label: 'Summary group' },
+                { id: 'type', label: 'Type' },
+              ])}
             </div>
+
+            {settings.colorMode === 'group' ? (
+              <div className="field">
+                <label>Group palette</label>
+                <div className="swatches">
+                  {GROUPS.map((g) => (
+                    <button
+                      key={g.id}
+                      className={`swatch wide${settings.groups === g.id ? ' on' : ''}`}
+                      title={g.label}
+                      onClick={() => update({ groups: g.id })}
+                    >
+                      {g.swatches.map((c) => (
+                        <span key={c} style={{ background: c }} />
+                      ))}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <>
+                {typeRow('Summaries', 'summaryColor')}
+                {typeRow('Activities', 'taskColor')}
+                {typeRow('Milestones', 'milestoneColor')}
+              </>
+            )}
 
             <div className="field">
               <label>Critical path</label>

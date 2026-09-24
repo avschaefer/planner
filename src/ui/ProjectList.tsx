@@ -1,24 +1,14 @@
 import { useRef, useState } from 'react';
 import type { ProjectDoc } from '../engine/types';
 import { useStore } from '../store/store';
+import { Aurora } from './Aurora';
 import { Button } from './Button';
 
-/**
- * The home page's backdrop: slow colour fields behind frosted glass.
- *
- * The orbs take their colours from the live palette variables, so they follow
- * whatever accent and group colours are chosen in Settings. Only `transform`
- * animates — no layout, no repaint of the blur — and all of it stops for
- * anyone who has asked their system for reduced motion.
- */
+/** Aurora behind frosted glass, with a film grain over both. */
 function Backdrop() {
   return (
     <div className="home-bg" aria-hidden="true">
-      <span className="orb orb-a" />
-      <span className="orb orb-b" />
-      <span className="orb orb-c" />
-      <span className="orb orb-d" />
-      <span className="sheen" />
+      <Aurora />
       <span className="grain" />
     </div>
   );

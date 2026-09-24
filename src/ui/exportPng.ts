@@ -66,6 +66,8 @@ export async function exportGanttPng(
 function layer(src: SVGSVGElement, x: number, y: number): SVGGElement {
   const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   g.setAttribute('transform', `translate(${x} ${y})`);
+  // Carry the root's classes (e.g. .by-type) so selectors scoped to it still match.
+  g.setAttribute('class', src.getAttribute('class') ?? '');
   const clone = src.cloneNode(true) as SVGSVGElement;
   clone
     .querySelectorAll('.link-hit, .handle, .knob, .knob-hit, .marquee, .rubber, [fill="transparent"]')

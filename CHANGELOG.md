@@ -7,6 +7,7 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Added
 
+- Settings → Colour by: *Summary group* (as before) or *Type* — every summary one colour, every activity a second, every milestone a third, each picked from its own row of swatches. Critical still overrides. Applies to the chart, the table and PNG export. [R-057]
 - After dragging an activity that has a predecessor, a prompt offers to record the move as lag on the driving link instead of a Start No Earlier Than constraint. Dragging a driven activity *earlier* than its logic now works, by reducing the lag. [R-017]
 - Summaries can be linked. A link from a summary reads the group's extent — FS from `s2` starts the successor after `s2`'s last activity — and a link onto a summary holds back everything inside it. Links can be dragged onto summary rows and typed into their predecessor cells. [R-018]
 - **Shared backend.** Schedules live in Supabase Postgres, one row per project mirroring
@@ -50,7 +51,7 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Changed
 
-- The home page sits on slow-drifting colour fields drawn from the live palette, behind a frosted-glass card, with a faint film grain. Only transforms animate, and motion stops under reduced-motion settings.
+- The home page background is a living aurora — flowing ribbons and soft colour fields in the accent with lilac, rose, peach and sky — behind a frosted-glass card. Seeded afresh each visit, drawn on a tiny canvas that CSS scales and blurs, and still under reduced-motion settings.
 - Dependency lines use one elbow — right along the predecessor's row, then down into the successor — as scheduling tools draw them. Lag lengthens the horizontal run. [R-035]
 - Summaries are drawn as brackets with a downward leg at each end in both profiles, so they never read as task bars.
 - Constraint wording is standard: "Start No Earlier Than", and "Remove constraint" in place of "Release to logic". [R-017]

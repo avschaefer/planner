@@ -281,7 +281,12 @@ export const Gantt = memo(function Gantt({ rows, hues, schedule, links, timeline
 
   return (
     <>
-      <svg ref={svgRef} className="gantt" width={tl.width} height={height}>
+      <svg
+        ref={svgRef}
+        className={`gantt${settings.colorMode === 'type' ? ' by-type' : ''}`}
+        width={tl.width}
+        height={height}
+      >
         {/* Catches everything past the last row, so clicking empty space
             clears the selection and a rubber band can start out there. */}
         <rect
