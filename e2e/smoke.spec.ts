@@ -354,6 +354,26 @@ test('the chart exports as a PNG', async ({ page }) => {
   expect(await file.path()).toBeTruthy();
 });
 
+test('a schedule is renamed from the toolbar, and it sticks', async ({ page }) => {
+  await newSchedule(page, ['A']);
+  await page.locator('.toolbar .title').click();
+  const input = page.getByLabel('Schedule name');
+  await expect(input).toBeFocused();
+  await input.fill('Renamed plan');
+  await input.press('Enter');
+  await expect(page.locator('.toolbar .title')).toHaveText('Renamed plan');
+
+  // Escape abandons an edit.
+  await page.locator('.toolbar .title').click();
+  await page.getByLabel('Schedule name').fill('Not this');
+  await page.getByLabel('Schedule name').press('Escape');
+  await expect(page.locator('.toolbar .title')).toHaveText('Renamed plan');
+
+  await page.waitForTimeout(500);
+  await page.locator('.toolbar button[title="All schedules"]').click();
+  await expect(page.locator('.pitem .name').first()).toHaveText('Renamed plan');
+});
+
 test('critical path filter dims the slack', async ({ page }) => {
   await newSchedule(page, ['A', 'B']);
   await setDuration(page, 0, 8);

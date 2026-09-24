@@ -7,6 +7,7 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Added
 
+- Rename a schedule in place: click its title in the toolbar. Enter or clicking away saves, Escape cancels; it undoes like any edit. [R-021]
 - **User accounts** on Supabase Auth: sign up, confirm by email once, then sign in with a password and stay signed in on that device. Forgotten passwords reset by email. [R-061]
 - Every schedule belongs to an account; the database enforces who can see and change it (row-level security), with a membership table ready for sharing. [R-065]
 - Profile page: name, email, plan, change password, sign out. An initials avatar on the project list opens it. [R-066]
@@ -56,6 +57,7 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Changed
 
+- Account page: one wide two-column card that fits without scrolling, a proper back control, sign-out top right, and a small logotype top-left instead of the hero title. [R-066]
 - The editor lock and save are one database function, so the lock holds however the client behaves. [R-064]
 - The hero title is 15% smaller.
 - Wordmark: "MARGA" as spaced capitals in Outfit beside the mark, and a large hairline hero "MARGA" above the card on both the home and passcode pages, sized to the window so it is never clipped. The passcode page now matches — still aurora, frosted card, same logotype and hero word.

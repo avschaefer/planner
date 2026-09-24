@@ -24,10 +24,19 @@ export function Mark() {
 export function GlassPage({
   children,
   narrow = false,
+  wide = false,
+  hero = true,
   action,
 }: {
   children: ReactNode;
   narrow?: boolean;
+  /** For two-column pages (the account page), so nothing needs scrolling. */
+  wide?: boolean;
+  /**
+   * The hero title and the card's logotype. Off for working pages like the
+   * account page, which carry a small logotype top-left instead.
+   */
+  hero?: boolean;
   /** Top-right of the card's header, e.g. the account button. */
   action?: ReactNode;
 }) {
@@ -37,19 +46,29 @@ export function GlassPage({
         <Aurora />
         <span className="grain" />
       </div>
-      <div className="home-scroll">
-        {/* Decoration: the card's <h1> is the accessible name. */}
-        <div className="hero-word hero-top" aria-hidden="true">
-          Marga
+      {!hero && (
+        <div className="page-mark">
+          <Mark />
+          <span>Marga</span>
         </div>
-        <div className={`projects glass${narrow ? ' narrow' : ''}`}>
-          <header className="brand">
-            <span className="mark" aria-hidden="true">
-              <Mark />
-            </span>
-            <h1>Marga</h1>
-            {action && <span className="brand-action">{action}</span>}
-          </header>
+      )}
+      <div className={`home-scroll${hero ? '' : ' centred'}`}>
+        {hero && (
+          /* Decoration: the card's <h1> is the accessible name. */
+          <div className="hero-word hero-top" aria-hidden="true">
+            Marga
+          </div>
+        )}
+        <div className={`projects glass${narrow ? ' narrow' : ''}${wide ? ' wide' : ''}`}>
+          {hero && (
+            <header className="brand">
+              <span className="mark" aria-hidden="true">
+                <Mark />
+              </span>
+              <h1>Marga</h1>
+              {action && <span className="brand-action">{action}</span>}
+            </header>
+          )}
           {children}
         </div>
       </div>

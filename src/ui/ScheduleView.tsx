@@ -216,7 +216,7 @@ export function ScheduleView() {
         <Button variant="ghost" icon onClick={() => store.closeProject()} title="All schedules">
           <Icon.Back />
         </Button>
-        <span className="title">{doc.name}</span>
+        <ProjectTitle name={doc.name} onRename={(next) => store.renameProject(next)} />
 
         <Button variant="primary" onClick={addTask} title="Add activity (Enter)">
           Add activity
@@ -355,6 +355,58 @@ export function ScheduleView() {
       {showKeys && <Shortcuts onClose={() => setShowKeys(false)} />}
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </>
+  );
+}
+
+/**
+ * The schedule's name, renamed in place: click, type, Enter (or click away)
+ * saves, Escape cancels. The rename is an ordinary edit, so it undoes and is
+ * refused while someone else holds the editor lock.
+ */
+function ProjectTitle({ name, onRename }: { name: string; onRename(next: string): void }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(name);
+  const done = useRef(false);
+
+  if (!editing) {
+    return (
+      <button
+        className="title title-edit"
+        title="Rename schedule"
+        onClick={() => {
+          setValue(name);
+          done.current = false;
+          setEditing(true);
+        }}
+      >
+        {name}
+      </button>
+    );
+  }
+
+  const finish = (save: boolean) => {
+    if (done.current) return;
+    done.current = true;
+    const next = value.trim();
+    if (save && next && next !== name) onRename(next);
+    setEditing(false);
+  };
+
+  return (
+    <input
+      className="title-input"
+      value={value}
+      autoFocus
+      onFocus={(e) => e.currentTarget.select()}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={() => finish(true)}
+      onKeyDown={(e) => {
+        e.stopPropagation();
+        if (e.key === 'Enter') finish(true);
+        if (e.key === 'Escape') finish(false);
+      }}
+      aria-label="Schedule name"
+    />
   );
 }
 

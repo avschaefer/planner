@@ -72,9 +72,15 @@ test('accounts: sign in, persist, profile, editor lock, sign out', async ({ brow
   await pageA.locator('.trow input').press('Escape');
   await pageA.waitForTimeout(1500);
 
+  // Rename in place; the new name is what the list shows after the reload.
+  await pageA.locator('.toolbar .title').click();
+  await pageA.getByLabel('Schedule name').fill('Accounts test renamed');
+  await pageA.getByLabel('Schedule name').press('Enter');
+  await pageA.waitForTimeout(1500);
+
   // The session survives a reload: no sign-in screen, the work is there.
   await pageA.reload();
-  await expect(pageA.locator('.pitem .name')).toHaveText('Accounts test', { timeout: 15_000 });
+  await expect(pageA.locator('.pitem .name')).toHaveText('Accounts test renamed', { timeout: 15_000 });
   await expect(pageA.locator('.pitem .count')).toHaveText('1 activity');
 
   // Same account in a second browser: sees the schedule, and is read-only
@@ -102,13 +108,13 @@ test('accounts: sign in, persist, profile, editor lock, sign out', async ({ brow
   // Profile: rename, and the avatar follows.
   await pageA.locator('.toolbar button[title="All schedules"]').click();
   await pageA.locator('.avatar').click();
-  await expect(pageA.locator('.auth-title')).toHaveText('Account');
+  await expect(pageA.locator('.account-title')).toHaveText('Account');
   await expect(pageA.locator('.auth-readonly').first()).toHaveText(email);
   await expect(pageA.locator('.auth-readonly').nth(1)).toHaveText('Free');
   await pageA.getByLabel('Name').fill('Grace Hopper');
   await pageA.getByRole('button', { name: 'Save name' }).click();
   await expect(pageA.locator('.notice')).toHaveText('Name saved.');
-  await pageA.getByRole('button', { name: '← Schedules' }).click();
+  await pageA.getByRole('button', { name: 'Schedules' }).click();
   await expect(pageA.locator('.avatar')).toHaveText('GH');
 
   // Sign out returns to the sign-in screen, and stays there on reload.

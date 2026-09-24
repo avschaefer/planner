@@ -12,8 +12,6 @@
       `http://localhost:5173/**`. Until this is set, confirmation and reset links point at localhost.
 - [ ] **Custom SMTP** (Authentication → Emails → SMTP) before inviting real users. The built-in
       sender is for testing and allows only a few emails an hour.
-- [ ] Sign up on the live site, then have the pre-accounts "AV Test" schedule attached to the new
-      account (it has no owner, so it is invisible to everyone until then).
 - [ ] Remove `APP_PASSCODE` and `SESSION_SECRET` from Vercel — unused since accounts.
 - [ ] **Plan a real program in it** and see what breaks.
 
