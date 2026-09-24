@@ -96,10 +96,12 @@ export const PanelLeft = () => (
   </svg>
 );
 
+/* The standard share glyph: an arrow leaving a tray. Drawn on a 24px grid (the
+   usual icon-set geometry) and scaled down, so the strokes stay even. */
 export const Share = () => (
-  <svg {...base}>
-    <circle cx="6" cy="5.5" r="2.2" />
-    <path d="M2.2 13c.3-2.2 1.9-3.5 3.8-3.5s3.5 1.3 3.8 3.5" />
-    <path d="M11 4.2v4.4M8.8 6.4h4.4" />
+  <svg {...base} viewBox="0 0 24 24" strokeWidth={2}>
+    <path d="M4 12v7a2 2 0 002 2h12a2 2 0 002-2v-7" />
+    <path d="M16 6l-4-4-4 4" />
+    <path d="M12 2v13" />
   </svg>
 );
