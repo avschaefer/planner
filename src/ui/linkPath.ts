@@ -55,3 +55,50 @@ export function arrowPoints(to: Anchor): string {
 }
 
 const round = (n: number) => Math.round(n * 10) / 10;
+
+export interface Route {
+  d: string;
+  arrow: string;
+}
+
+/** How far into a successor bar the elbow drops, so the arrow lands on the bar, not its edge. */
+const ELBOW_INSET = 6;
+
+/**
+ * A dependency line as scheduling tools draw it.
+ *
+ * Finish-to-start onto a successor that starts at or after the link leaves:
+ * one elbow — right along the predecessor's row, then straight down (or up)
+ * onto the successor, arrowhead pointing into it. Lag needs no special case:
+ * it moves the successor right, so the horizontal run grows by itself.
+ *
+ * Anything else — start-anchored sources, finish-anchored successors, a
+ * successor that begins before the link leaves (negative lag) — cannot be one
+ * elbow without doubling back, and takes the stepped route.
+ *
+ * `targetHalf` is half the drawn height of the successor's shape, so the arrow
+ * stops at its edge; `targetPoint` is true for a milestone, which is entered at
+ * its centre rather than inset from its start.
+ */
+export function routeDependency(
+  from: Anchor,
+  to: Anchor,
+  targetHalf: number,
+  targetPoint: boolean,
+  lane = 0,
+): Route {
+  const turnX = targetPoint ? to.x : to.x + ELBOW_INSET;
+  const elbow = from.dir === 1 && to.dir === 1 && from.y !== to.y && turnX >= from.x + 3;
+
+  if (!elbow) {
+    return { d: routeLink(from, to, lane), arrow: arrowPoints(to) };
+  }
+
+  const down = to.y > from.y ? 1 : -1;
+  const edgeY = to.y - down * targetHalf;
+  const d = `M${round(from.x)} ${round(from.y)} H${round(turnX)} V${round(edgeY)}`;
+  const s = 3.5;
+  const backY = edgeY - down * (s + 1.5);
+  const arrow = `${round(turnX)},${round(edgeY)} ${round(turnX - s)},${round(backY)} ${round(turnX + s)},${round(backY)}`;
+  return { d, arrow };
+}

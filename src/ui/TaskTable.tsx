@@ -450,7 +450,9 @@ function DateCell({
         pinned ? ' pinned' : ''
       }`}
       style={{ width, flex: 'none' }}
-      title={pinned ? 'Held on this date by a drag. Open it to release it back to the logic.' : undefined}
+      title={
+        pinned ? 'Start No Earlier Than (SNET) constraint. Click to change the date or remove it.' : undefined
+      }
       onClick={(e) => editable && !selecting(e) && onOpen()}
     >
       {display}

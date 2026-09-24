@@ -25,7 +25,7 @@ export function durationOf(t: Task): number {
 }
 
 /** Earliest start `to` may take given `from`'s scheduled position. */
-function earliestStart(link: Link, from: { start: WorkDay; end: WorkDay }, toDuration: number): WorkDay {
+export function earliestStart(link: Link, from: { start: WorkDay; end: WorkDay }, toDuration: number): WorkDay {
   switch (link.type) {
     case 'FS':
       return from.end + link.lag;

@@ -7,6 +7,7 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Added
 
+- After dragging an activity that has a predecessor, a prompt offers to record the move as lag on the driving link instead of a Start No Earlier Than constraint. Dragging a driven activity *earlier* than its logic now works, by reducing the lag. [R-017]
 - Summaries can be linked. A link from a summary reads the group's extent — FS from `s2` starts the successor after `s2`'s last activity — and a link onto a summary holds back everything inside it. Links can be dragged onto summary rows and typed into their predecessor cells. [R-018]
 - **Shared backend.** Schedules live in Supabase Postgres, one row per project mirroring
   `ProjectDoc`, reached through a new `ScheduleRepo` implementation. No call site changed. [R-062]
@@ -49,6 +50,10 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Changed
 
+- Dependency lines use one elbow — right along the predecessor's row, then down into the successor — as scheduling tools draw them. Lag lengthens the horizontal run. [R-035]
+- Summaries are drawn as brackets with a downward leg at each end in both profiles, so they never read as task bars.
+- Constraint wording is standard: "Start No Earlier Than", and "Remove constraint" in place of "Release to logic". [R-017]
+- Predecessor text matches duration text exactly.
 - Cell editing: the cell itself becomes the field — borderless input, an accent ring, no text shift. One click anywhere in a cell opens it, including the empty part of the name box. The chart no longer re-renders when an editor opens, which was the lag.
 - Duration and predecessors are purple, marking what you type; dates and float stay grey as computed values. Every editable cell shows a pointer.
 - One `Button` component for every button in the app. [R-052]

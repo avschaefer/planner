@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import {
   descendants,
   durationOf,
+  earliestStart,
   outline,
   rowIds,
   scheduleProject,
@@ -111,6 +112,9 @@ interface State {
   setStart(id: string, day: WorkDay): void;
   setFinish(id: string, day: WorkDay): void;
   clearConstraint(ids: string | string[]): void;
+  logicStart(id: string): WorkDay | null;
+  hasDirectPredecessors(id: string): boolean;
+  constraintToLag(id: string, merge?: boolean): number | null;
   resizeFromStart(id: string, newStart: WorkDay): void;
   moveBy(ids: string | string[], deltaDays: number): void;
   deleteTask(ids: string | string[]): void;
@@ -289,7 +293,7 @@ export const useStore = create<State>((set, get) => {
    * It is also the only gate read-only mode needs: every edit in the app, from
    * a drag to an undo, arrives here.
    */
-  function commit(mutate: (draft: ProjectDoc) => void | boolean) {
+  function commit(mutate: (draft: ProjectDoc) => void | boolean, opts: { merge?: boolean } = {}) {
     const { doc, undoStack, readOnly } = get();
     if (!doc) return;
     if (readOnly) {
@@ -302,7 +306,8 @@ export const useStore = create<State>((set, get) => {
     set({
       doc: draft,
       schedule: scheduleProject(draft),
-      undoStack: [...undoStack, doc].slice(-UNDO_LIMIT),
+      // `merge` folds a follow-up into the edit just made, so one gesture stays one undo.
+      undoStack: opts.merge && undoStack.length ? undoStack : [...undoStack, doc].slice(-UNDO_LIMIT),
       redoStack: [],
     });
     scheduleSave(draft);
@@ -517,6 +522,72 @@ export const useStore = create<State>((set, get) => {
         t.duration = Math.max(1, end - newStart);
         t.constraint = { type: 'SNET', day: newStart };
       });
+    },
+
+    /** Where the links alone would put an activity, ignoring its own constraint. */
+    logicStart(id) {
+      const { doc } = get();
+      const task = doc?.tasks.find((t) => t.id === id);
+      if (!doc || !task) return null;
+      const free: ProjectDoc = {
+        ...doc,
+        tasks: doc.tasks.map((t) => (t.id === id ? { ...t, constraint: undefined } : t)),
+      };
+      return scheduleProject(free).byId.get(id)?.start ?? null;
+    },
+
+    hasDirectPredecessors(id) {
+      return !!get().doc?.links.some((l) => l.toId === id);
+    },
+
+    /**
+     * Turn a Start No Earlier Than date into lag on the link that drives the
+     * activity, so it sits at the same date but stays logic-driven: move the
+     * predecessor and it follows. Also the only way to move a driven activity
+     * *earlier* than its logic allows, which a constraint cannot do.
+     *
+     * Returns the new lag, or null when there is no direct link to adjust.
+     */
+    constraintToLag(id, merge = false) {
+      const { doc } = get();
+      const task = doc?.tasks.find((t) => t.id === id);
+      if (!doc || !task?.constraint) return null;
+      const incoming = doc.links.filter((l) => l.toId === id);
+      if (!incoming.length) return null;
+
+      const target = task.constraint.day;
+      const free: ProjectDoc = {
+        ...doc,
+        tasks: doc.tasks.map((t) => (t.id === id ? { ...t, constraint: undefined } : t)),
+      };
+      const sched = scheduleProject(free);
+      const dur = durationOf(task);
+
+      // The driving link is the one whose bound is latest; moving its lag by
+      // the gap puts the activity exactly on the dragged date.
+      let driver: Link | null = null;
+      let bound = -Infinity;
+      for (const l of incoming) {
+        const from = sched.byId.get(l.fromId);
+        if (!from) continue;
+        const b = earliestStart(l, from, dur);
+        if (b > bound) {
+          bound = b;
+          driver = l;
+        }
+      }
+      if (!driver) return null;
+      const lag = driver.lag + (target - bound);
+      const linkId = driver.id;
+
+      commit((d) => {
+        const t = d.tasks.find((x) => x.id === id);
+        const l = d.links.find((x) => x.id === linkId);
+        if (!t || !l) return false;
+        delete t.constraint;
+        l.lag = lag;
+      }, { merge });
+      return lag;
     },
 
     clearConstraint(ids) {

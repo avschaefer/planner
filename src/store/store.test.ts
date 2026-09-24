@@ -102,6 +102,42 @@ describe('store', () => {
     expect(s().notice).toMatch(/depend on itself/);
   });
 
+  it('turns a dragged date into lag on the driving link', () => {
+    addActivities([
+      ['A', 5],
+      ['B', 2],
+    ]);
+    s().addLink(codeId('A'), codeId('B'));
+    s().moveBy(codeId('B'), 3);
+    expect(startOf('B')).toBe(8);
+
+    const lag = s().constraintToLag(codeId('B'));
+    expect(lag).toBe(3);
+    expect(startOf('B')).toBe(8);
+    expect(s().doc!.tasks.find((t) => t.name === 'B')!.constraint).toBeUndefined();
+
+    // Still driven: lengthen A and B follows.
+    s().setDuration(codeId('A'), 7);
+    expect(startOf('B')).toBe(10);
+  });
+
+  it('moves a driven activity earlier than its logic only by reducing lag', () => {
+    addActivities([
+      ['A', 5],
+      ['B', 2],
+    ]);
+    s().addLink(codeId('A'), codeId('B'), 'FS', 2);
+    expect(startOf('B')).toBe(7);
+    expect(s().logicStart(codeId('B'))).toBe(s().schedule!.byId.get(codeId('B'))!.start);
+
+    s().moveBy(codeId('B'), -2);
+    expect(startOf('B')).toBe(7); // a constraint alone cannot pull it earlier
+    const depth = s().undoStack.length;
+    expect(s().constraintToLag(codeId('B'), true)).toBe(0);
+    expect(startOf('B')).toBe(5);
+    expect(s().undoStack.length).toBe(depth); // merged into the drag: one undo
+  });
+
   it('pins a dragged activity instead of breaking its logic', () => {
     addActivities([
       ['A', 5],

@@ -10,8 +10,9 @@ import { useStore } from '../store/store';
 import { hueClass } from './colors';
 import { textWidth } from './measure';
 import type { Settings, TextPos } from './settings';
+import { Button } from './Button';
 import { LinkPopover } from './LinkPopover';
-import { anchorsFor, arrowPoints, routeLink, type Anchor } from './linkPath';
+import { anchorsFor, routeDependency, type Anchor } from './linkPath';
 import { BAR_H, BAR_Y, ROW_H, type Row } from './rows';
 import { majorTicks, todayX, weekendBands, type Timeline } from './timeline';
 
@@ -54,6 +55,9 @@ export const Gantt = memo(function Gantt({ rows, hues, schedule, links, timeline
   const [tip, setTip] = useState<{ id: string; x: number; y: number } | null>(null);
   /* Where the dependency popover opens: the point the arrow was clicked. */
   const [linkAt, setLinkAt] = useState<{ x: number; y: number } | null>(null);
+  /* After dragging an activity that has predecessors: record it as a
+     constraint (applied) or as lag on the link (offered). */
+  const [prompt, setPrompt] = useState<{ id: string; delta: number; x: number; y: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const dragRef = useRef<Drag | null>(null);
   dragRef.current = drag;
@@ -117,7 +121,7 @@ export const Gantt = memo(function Gantt({ rows, hues, schedule, links, timeline
       }
     };
 
-    const up = () => {
+    const up = (e: PointerEvent) => {
       const cur = dragRef.current;
       setDrag(null);
       dragRef.current = null;
@@ -148,9 +152,29 @@ export const Gantt = memo(function Gantt({ rows, hues, schedule, links, timeline
       }
 
       if (cur.kind === 'move') {
-        const s = schedule.byId.get(cur.ids[0]);
+        const id = cur.ids[0];
+        const s = schedule.byId.get(id);
         if (!s || cur.delta === 0) return;
-        store.moveBy(cur.ids, shiftWorkDays(s.start, cur.delta));
+        const target = s.start + shiftWorkDays(s.start, cur.delta);
+        const task = rows.find((r) => r.task.id === id)?.task;
+        const driven =
+          cur.ids.length === 1 && task?.type !== 'summary' && store.hasDirectPredecessors(id);
+        const logic = driven ? store.logicStart(id) : null;
+
+        store.moveBy(cur.ids, target - s.start);
+        if (!driven || logic === null) return;
+
+        if (target < logic) {
+          // A Start No Earlier Than date cannot pull an activity ahead of its
+          // predecessor. Lag can, so that is the only way to honour the drag.
+          const lag = store.constraintToLag(id, true);
+          if (lag !== null) store.notify(`Moved earlier by setting the link's lag to ${lag}d.`);
+        } else if (target === logic) {
+          // Dropped exactly where the logic puts it: nothing to record.
+          store.clearConstraint(id);
+        } else {
+          setPrompt({ id, delta: target - logic, x: e.clientX, y: e.clientY });
+        }
         return;
       }
 
@@ -339,11 +363,18 @@ export const Gantt = memo(function Gantt({ rows, hues, schedule, links, timeline
             const sel = selection.linkId === l.id;
             const dim = isDim(l.fromId) || isDim(l.toId);
             const cls = `${critical ? ' critical' : ''}${sel ? ' sel' : ''}${dim ? ' dim' : ''}`;
-            const d = routeLink(a.from, a.to, i % 3);
+            const target = rows[rowIndex.get(l.toId)!]?.task;
+            const { d, arrow } = routeDependency(
+              a.from,
+              a.to,
+              shapeHalfHeight(target?.type, settings.summaryText === 'inside'),
+              target?.type === 'milestone',
+              i % 3,
+            );
             return (
               <g key={l.id}>
                 <path className={`link${cls}`} d={d} />
-                <polygon className={`link-arrow${cls}`} points={arrowPoints(a.to)} />
+                <polygon className={`link-arrow${cls}`} points={arrow} />
                 <path
                   className="link-hit"
                   d={d}
@@ -430,6 +461,7 @@ export const Gantt = memo(function Gantt({ rows, hues, schedule, links, timeline
         <BarTip tip={tip} schedule={schedule} rows={rows} links={links} fmt={settings.dateFormat} />
       )}
       {selection.linkId && linkAt && <LinkPopover at={linkAt} />}
+      {prompt && <ConstraintPrompt prompt={prompt} fmt={settings.dateFormat} onClose={() => setPrompt(null)} />}
     </>
   );
 });
@@ -537,9 +569,9 @@ function Bar(p: BarProps) {
           <text
             className={`bar-label${place.inside ? ' inside' : ''}${
               place.inside && (p.critical || isSummary) ? ' on-fill' : ''
-            }`}
+            }${isSummary ? ' summary' : ''}`}
             x={place.x}
-            y={mid}
+            y={place.inside && isSummary ? mid + SUMMARY_THICK.top + SUMMARY_THICK.band / 2 + 0.5 : mid}
             textAnchor={place.anchor}
           >
             {label}
@@ -682,6 +714,23 @@ function Preview({
   );
 }
 
+/**
+ * Summary geometry. Both forms are the scheduling-tool bracket — a band with a
+ * downward leg at each end — so a summary never reads as a task bar. The thick
+ * form exists only to hold a label inside it.
+ */
+const SUMMARY_THIN = { top: -6, band: 5, cap: 5, half: 6 };
+const SUMMARY_THICK = { top: -8, band: 11, cap: 5, half: 8 };
+
+function bracketPath(x: number, w: number, top: number, band: number, cap: number): string {
+  const c = Math.min(cap, w / 2);
+  const bottom = top + band;
+  return (
+    `M${x} ${top} H${x + w} V${bottom + c} L${x + w - c} ${bottom} ` +
+    `H${x + c} L${x} ${bottom + c} Z`
+  );
+}
+
 function SummaryBar({
   x,
   w,
@@ -699,20 +748,8 @@ function SummaryBar({
   cls: string;
   onDown(e: React.PointerEvent): void;
 }) {
-  if (thick) {
-    return (
-      <rect
-        className={`sumbar solid${cls}`}
-        x={x}
-        y={y + BAR_Y}
-        width={w}
-        height={BAR_H}
-        rx={4}
-        onPointerDown={onDown}
-      />
-    );
-  }
-  if (shape === 'bar') {
+  const mid = y + ROW_H / 2;
+  if (!thick && shape === 'bar') {
     return (
       <rect
         className={`sumbar solid${cls}`}
@@ -725,18 +762,12 @@ function SummaryBar({
       />
     );
   }
-  const top = y + BAR_Y + 2;
-  const h = 6;
-  const cap = 5;
+  const g = thick ? SUMMARY_THICK : SUMMARY_THIN;
   return (
     <path
-      className={`sumbar${cls}`}
+      className={`sumbar${thick ? ' thick' : ''}${cls}`}
       onPointerDown={onDown}
-      d={
-        `M${x} ${top} H${x + w} V${top + h} ` +
-        `L${x + w - cap} ${top + h} L${x + w - cap} ${top + h + cap} L${x + w - cap * 2.2} ${top + h} ` +
-        `H${x + cap * 2.2} L${x + cap} ${top + h + cap} L${x + cap} ${top + h} L${x} ${top + h} Z`
-      }
+      d={bracketPath(x, w, mid + g.top, g.band, g.cap)}
     />
   );
 }
@@ -776,6 +807,79 @@ function Rubber({
         </g>
       )}
     </g>
+  );
+}
+
+/* ---- after dragging a driven activity: constraint or lag ---- */
+
+/**
+ * Dragging an activity that has a predecessor has two honest readings, and
+ * scheduling tools make you pick. The move is applied as a Start No Earlier
+ * Than constraint straight away, so the chart never waits on a question; this
+ * offers to record it as lag on the driving link instead, which keeps the
+ * activity moving with its predecessor.
+ */
+function ConstraintPrompt({
+  prompt,
+  fmt,
+  onClose,
+}: {
+  prompt: { id: string; delta: number; x: number; y: number };
+  fmt: DateFormat;
+  onClose(): void;
+}) {
+  const task = useStore((s) => s.doc?.tasks.find((t) => t.id === prompt.id));
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const away = (e: PointerEvent) => {
+      if (!ref.current?.contains(e.target as Node)) onClose();
+    };
+    const key = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('pointerdown', away, true);
+    window.addEventListener('keydown', key);
+    return () => {
+      window.removeEventListener('pointerdown', away, true);
+      window.removeEventListener('keydown', key);
+    };
+  }, [onClose]);
+
+  // The constraint may already be gone — an undo, or a remote edit.
+  if (!task?.constraint) return null;
+  const name = task.name || 'This activity';
+
+  return (
+    <div
+      ref={ref}
+      className="pop constraint-prompt"
+      style={{
+        left: Math.min(prompt.x + 12, window.innerWidth - 340),
+        top: Math.min(prompt.y + 14, window.innerHeight - 150),
+      }}
+    >
+      <div className="cp-title">
+        {name} → Start No Earlier Than {formatWorkDay(task.constraint.day, fmt)}
+      </div>
+      <div className="hint">
+        Or keep it driven by its predecessor, with {prompt.delta}d more lag on the link.
+      </div>
+      <div className="row">
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => {
+            const lag = useStore.getState().constraintToLag(prompt.id);
+            if (lag !== null) useStore.getState().notify(`Link lag set to ${lag}d.`);
+            onClose();
+          }}
+        >
+          Add {prompt.delta}d lag instead
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onClose}>
+          Keep constraint
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -825,7 +929,7 @@ function BarTip({
         </div>
       )}
       {row.task.constraint && (
-        <div className="t-row">Held on {formatWorkDay(row.task.constraint.day, fmt)}</div>
+        <div className="t-row">Start No Earlier Than {formatWorkDay(row.task.constraint.day, fmt)}</div>
       )}
     </div>
   );
@@ -842,6 +946,13 @@ function TodayLine({ tl, height }: { tl: Timeline; height: number }) {
 }
 
 /* ------------------------------------------------------------ helpers ---- */
+
+/** Half the drawn height of a row's shape, so an arrow stops at its edge. */
+function shapeHalfHeight(type: Task['type'] | undefined, thickSummary: boolean): number {
+  if (type === 'milestone') return 7.5;
+  if (type === 'summary') return thickSummary ? SUMMARY_THICK.half : 6;
+  return BAR_H / 2;
+}
 
 /** Grabbed end × released end → relationship type. All four come from the mouse. */
 function relationship(from: End, to: End): LinkType {

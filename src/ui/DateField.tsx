@@ -198,13 +198,13 @@ export function DateField({
             <Button
               variant="ghost"
               size="sm"
-              title="Stop holding this activity on a date and let its logic drive it again"
+              title="Remove the Start No Earlier Than constraint so the links drive this activity again"
               onClick={() => {
                 onClear();
                 onClose();
               }}
             >
-              Release to logic
+              Remove constraint
             </Button>
           )}
         </div>

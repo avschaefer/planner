@@ -397,7 +397,7 @@ input {
   justify-content: flex-end;
   cursor: pointer;
 }
-.td.pred { font-family: var(--mono); font-size: 11.5px; }
+.td.pred { font-variant-numeric: tabular-nums; }
 
 /* What you type is purple; what the engine works out (dates, float) is grey. */
 .td.dur.editable, .td.pred.editable { color: var(--accent); }
@@ -551,6 +551,8 @@ input {
 .label-bg.sel { fill: color-mix(in srgb, var(--accent) 9%, var(--bg)); }
 .bar-label.inside { fill: var(--text); stroke: none; }
 .bar-label.inside.on-fill { fill: #fff; }
+.bar-label.summary { font-weight: 640; }
+.bar-label.inside.summary { font-size: 10.5px; letter-spacing: 0.01em; }
 
 /* Total float: how far a bar can slip before it moves the finish. The end tick
    is what makes it read as a span rather than as stray dots. */
@@ -864,3 +866,10 @@ input {
 @media (prefers-reduced-motion: reduce) {
   .editing-banner .dot { animation: none; }
 }
+
+/* ---------- constraint or lag, after dragging a driven activity ---------- */
+
+.constraint-prompt { width: 330px; }
+.constraint-prompt .cp-title { font-weight: 600; font-size: 12.5px; line-height: 1.4; }
+.constraint-prompt .hint { margin-top: 4px; }
+.constraint-prompt .row { margin-top: 10px; }
