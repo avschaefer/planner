@@ -1,10 +1,8 @@
 /**
- * The soft editor lock rule, in one place.
- *
- * Both the browser and the API functions have to agree on who may write, so
- * the rule lives in a module with no Vite and no Supabase imports and is used
- * by `src/persist/supabaseRepo.ts` and `api/_supabase.ts` alike. Two copies of
- * this would drift, and the drift would look like a bug in the lock.
+ * The soft editor lock rule, as the browser sees it — for showing the
+ * read-only banner. The database enforces the same rule on every write
+ * (save_project / claim_editor in supabase/migrations); the 90 seconds here
+ * must match the interval there.
  */
 
 /** How long after its last heartbeat an editor lock is treated as abandoned. */

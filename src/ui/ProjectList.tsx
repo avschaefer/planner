@@ -1,29 +1,8 @@
 import { useRef, useState } from 'react';
 import type { ProjectDoc } from '../engine/types';
 import { useStore } from '../store/store';
-import { Aurora } from './Aurora';
 import { Button } from './Button';
-
-/** Aurora behind frosted glass, with a film grain over both. */
-function Backdrop() {
-  return (
-    <div className="home-bg" aria-hidden="true">
-      <Aurora />
-      <span className="grain" />
-    </div>
-  );
-}
-
-/** A small bar-chart glyph. The product in one mark, at 22px. */
-function Mark() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-      <rect x="2" y="4.5" width="11" height="3.6" rx="1.8" fill="currentColor" />
-      <rect x="6" y="9.2" width="14" height="3.6" rx="1.8" fill="currentColor" opacity="0.62" />
-      <rect x="4" y="13.9" width="9" height="3.6" rx="1.8" fill="currentColor" opacity="0.34" />
-    </svg>
-  );
-}
+import { AccountButton, GlassPage } from './GlassPage';
 
 function relativeTime(iso: string): string {
   if (!iso) return '';
@@ -64,81 +43,65 @@ export function ProjectList() {
   }
 
   return (
-    <div className="home">
-      <Backdrop />
-      <div className="home-scroll">
-        {/* Decoration: the card's <h1> is the accessible name. */}
-        <div className="hero-word hero-top" aria-hidden="true">
-          Marga
-        </div>
-        <div className="projects glass">
-          <header className="brand">
-            <span className="mark" aria-hidden="true">
-              <Mark />
-            </span>
-            <h1>Marga</h1>
-          </header>
-
-          <div className="new">
-            <input
-              placeholder="Name a new schedule…"
-              ref={nameRef}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') create();
-              }}
-              autoFocus
-            />
-            <Button variant="primary" onClick={create}>
-              Create
-            </Button>
-            <Button variant="ghost" onClick={() => fileRef.current?.click()}>
-              Import…
-            </Button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="application/json,.json"
-              hidden
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void onImport(f);
-                e.target.value = '';
-              }}
-            />
-          </div>
-
-          {loading ? null : projects.length === 0 ? (
-            <div className="empty">Nothing here yet. Name a schedule above and press Enter.</div>
-          ) : (
-            <div className="plist">
-              {projects.map((p) => (
-                <div key={p.id} className="pitem" onClick={() => void openProject(p.id)}>
-                  <span className="rule" aria-hidden="true" />
-                  <span className="name">{p.name}</span>
-                  <span className="count">
-                    {p.taskCount} {p.taskCount === 1 ? 'activity' : 'activities'}
-                  </span>
-                  <span className="when">{relativeTime(p.updatedAt)}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="del"
-                    title="Delete schedule"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (confirm(`Delete "${p.name}"? This cannot be undone.`)) void deleteProject(p.id);
-                    }}
-                  >
-                    Delete
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+    <GlassPage action={<AccountButton />}>
+      <div className="new">
+        <input
+          placeholder="Name a new schedule…"
+          ref={nameRef}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') create();
+          }}
+          autoFocus
+        />
+        <Button variant="primary" onClick={create}>
+          Create
+        </Button>
+        <Button variant="ghost" onClick={() => fileRef.current?.click()}>
+          Import…
+        </Button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/json,.json"
+          hidden
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void onImport(f);
+            e.target.value = '';
+          }}
+        />
       </div>
-    </div>
+
+      {loading ? null : projects.length === 0 ? (
+        <div className="empty">Nothing here yet. Name a schedule above and press Enter.</div>
+      ) : (
+        <div className="plist">
+          {projects.map((p) => (
+            <div key={p.id} className="pitem" onClick={() => void openProject(p.id)}>
+              <span className="rule" aria-hidden="true" />
+              <span className="name">{p.name}</span>
+              <span className="count">
+                {p.taskCount} {p.taskCount === 1 ? 'activity' : 'activities'}
+              </span>
+              <span className="when">{relativeTime(p.updatedAt)}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="del"
+                title="Delete schedule"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirm(`Delete "${p.name}"? This cannot be undone.`)) void deleteProject(p.id);
+                }}
+              >
+                Delete
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </GlassPage>
   );
 }

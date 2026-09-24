@@ -21,6 +21,7 @@ import type {
   TaskType,
   WorkDay,
 } from '../engine/types';
+import { currentAccount, onAuthChange, signOut as authSignOut, type Account } from '../persist/auth';
 import { idbRepo } from '../persist/idbRepo';
 import { subscribeProject, subscribeProjects } from '../persist/realtime';
 import type { ScheduleRepo } from '../persist/repo';
@@ -34,6 +35,13 @@ import {
 import { applyTheme, loadSettings, saveSettings, type Settings } from '../ui/settings';
 
 const uid = () => Math.random().toString(36).slice(2, 10);
+
+/**
+ * Project ids are global in the shared table, so they must never collide
+ * between accounts: a UUID, not the short ids used inside a document.
+ */
+const projectId = () =>
+  typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${uid()}${uid()}${uid()}`;
 
 /**
  * Which browser tab this is. Used to recognise our own writes coming back over
@@ -78,7 +86,13 @@ export type SelectMode = 'replace' | 'toggle' | 'range';
 const EMPTY_SELECTION: Selection = { taskIds: [], linkId: null, anchorId: null };
 
 interface State {
-  view: 'projects' | 'schedule';
+  view: 'projects' | 'schedule' | 'profile';
+  /** The signed-in account, when this build is shared. Null when signed out or local. */
+  account: Account | null;
+  /** False until the saved session has been checked, so nothing flashes. */
+  authReady: boolean;
+  /** Arrived from a password-reset link: ask for a new password. */
+  recovery: boolean;
   projects: ProjectSummary[];
   doc: ProjectDoc | null;
   schedule: ScheduleResult | null;
@@ -98,6 +112,11 @@ interface State {
   shared: boolean;
 
   init(): Promise<void>;
+  openProfile(): void;
+  closeProfile(): void;
+  setAccount(account: Account): void;
+  endRecovery(): void;
+  signOut(): Promise<void>;
   createProject(name: string): Promise<void>;
   openProject(id: string): Promise<void>;
   closeProject(): void;
@@ -176,7 +195,7 @@ if (typeof window !== 'undefined') {
 
 function blankDoc(name: string): ProjectDoc {
   return {
-    id: uid(),
+    id: projectId(),
     name,
     dataDate: todayIso(),
     tasks: [],
@@ -197,6 +216,45 @@ export const useStore = create<State>((set, get) => {
   let heartbeat: ReturnType<typeof setInterval> | null = null;
   let holdsLock = false;
   let claiming: Promise<boolean> | null = null;
+
+  let detachAuth: (() => void) | null = null;
+
+  /** Load the list and keep it live. Runs once per sign-in. */
+  async function startList() {
+    const projects = await repo.list().catch((error: Error) => {
+      get().notify(`Could not load schedules: ${error.message}`);
+      return [];
+    });
+    set({ projects, loading: false });
+    // A schedule someone else creates or deletes just appears, or goes.
+    detachList ??= subscribeProjects(() => {
+      if (get().view === 'projects') void repo.list().then((next) => set({ projects: next }));
+    });
+  }
+
+  /** Signed out — here, in another tab, or by an expired session. Drop everything. */
+  function resetForSignOut() {
+    detachProject?.();
+    detachProject = null;
+    detachList?.();
+    detachList = null;
+    releaseLocally();
+    set({
+      account: null,
+      authReady: true,
+      recovery: false,
+      view: 'projects',
+      projects: [],
+      doc: null,
+      schedule: null,
+      undoStack: [],
+      redoStack: [],
+      selection: EMPTY_SELECTION,
+      readOnly: false,
+      editorId: null,
+      loading: false,
+    });
+  }
 
   function releaseLocally() {
     holdsLock = false;
@@ -276,9 +334,8 @@ export const useStore = create<State>((set, get) => {
       lose(error.editorId ?? null);
       get().notify('Someone else is editing this schedule. Your last change was not saved.');
       void resync();
-    } else if (error.status === 401) {
-      // The session expired behind the passcode gate; a reload shows the unlock page.
-      get().notify('Your session expired. Reload to sign back in.');
+    } else if (error.status === 403) {
+      get().notify("You don't have permission to change this schedule.");
     } else {
       get().notify(`Could not save: ${error.message}`);
     }
@@ -342,13 +399,57 @@ export const useStore = create<State>((set, get) => {
     readOnly: false,
     editorId: null,
     shared: isShared,
+    account: null,
+    authReady: !isShared,
+    recovery: false,
 
+    /*
+     * Local builds go straight to the project list. Shared builds first check
+     * for a saved session; signed out, the app shows the sign-in screen and
+     * reads nothing, since the database would refuse anyway.
+     */
     async init() {
-      set({ projects: await repo.list(), loading: false });
-      // A schedule someone else creates or deletes just appears, or goes.
-      detachList ??= subscribeProjects(() => {
-        if (get().view === 'projects') void repo.list().then((projects) => set({ projects }));
-      });
+      if (isShared) {
+        detachAuth ??= onAuthChange((event, account) => {
+          if (event === 'PASSWORD_RECOVERY') set({ recovery: true });
+          if (!account) {
+            resetForSignOut();
+            return;
+          }
+          const arriving = !get().account;
+          set({ account, authReady: true });
+          if (arriving) void startList();
+        });
+        const account = await currentAccount().catch(() => null);
+        set({ account, authReady: true });
+        if (!account) {
+          set({ loading: false });
+          return;
+        }
+      }
+      await startList();
+    },
+
+    openProfile() {
+      set({ view: 'profile' });
+    },
+
+    closeProfile() {
+      set({ view: 'projects' });
+    },
+
+    setAccount(account) {
+      set({ account });
+    },
+
+    endRecovery() {
+      set({ recovery: false });
+    },
+
+    async signOut() {
+      flushSave();
+      await authSignOut();
+      resetForSignOut();
     },
 
     async createProject(name) {
@@ -419,7 +520,7 @@ export const useStore = create<State>((set, get) => {
     },
 
     async importDoc(doc) {
-      const fresh: ProjectDoc = { ...doc, id: uid(), updatedAt: new Date().toISOString() };
+      const fresh: ProjectDoc = { ...doc, id: projectId(), updatedAt: new Date().toISOString() };
       await repo.save(fresh);
       set({
         doc: fresh,

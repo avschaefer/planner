@@ -2,8 +2,8 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
-  // *.manual.spec.ts needs `vercel dev` and a real Supabase project, so it is
-  // not part of the default run. See `npm run e2e:stack`.
+  // *.manual.spec.ts runs against a real Supabase project and is not part of
+  // the default run.
   testIgnore: '**/*.manual.spec.ts',
   timeout: 20_000,
   use: { baseURL: 'http://localhost:5173' },

@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts', 'api/**/*.test.ts', '*.test.ts'],
+    include: ['src/**/*.test.ts'],
     // Hermetic: a developer's .env.local must not decide whether the store
     // talks to IndexedDB or to a real Supabase project.
     env: {

@@ -3,10 +3,10 @@
 Critical-path scheduling with a modern interface. The scheduling logic of Primavera P6 —
 activities, dependencies, lag, float, critical path — without the enterprise suite around it.
 
-Runs two ways: local-only against IndexedDB, or shared — one Supabase database behind a single
-passcode, with everyone watching the same schedule change live.
+Runs two ways: local-only against IndexedDB, or with accounts — Supabase Auth and one database,
+where each person's schedules are theirs and changes appear live.
 
-Deployed at **https://marga-planner.vercel.app** behind a shared passcode.
+Deployed at **https://marga-planner.vercel.app** — sign up to use it.
 
 ## Run it
 
@@ -34,23 +34,22 @@ npm run dev          # http://localhost:5173
 - **Multi-select** by rubber band or gutter sweep; delete, indent, and drag the whole set at once.
 - **Drag rows** by the grip to reorder them, and sideways to move them in and out of summaries.
 - **Milestones**, undo/redo, keyboard-first editing, day/week/month zoom.
-- **Shared, if you want it.** One passcode for the team, schedules in Supabase, live updates on
-  every screen, and one editor at a time with a take-over button. No accounts.
+- **Accounts, if you want them.** Sign in with email and password; your schedules are yours, with live updates on
+  every screen and one editor at a time with a take-over button.
 
 Deliberately not built: resources, cost, earned value, WBS/OBS, progress tracking, baselines,
 complex calendars, authentication.
 
-## Sharing it with a team
+## Accounts
 
-Optional — without these the app runs entirely in your browser.
+Optional — without Supabase values the app runs entirely in your browser.
 
-1. Apply `supabase/migrations/0001_init.sql` to a Supabase project.
-2. Copy `.env.example` to `.env.local` and fill it in.
-3. `npx vercel dev` for the full stack locally, or push to `main` to deploy.
+1. Apply `supabase/migrations/` to a Supabase project, in order.
+2. Copy `.env.example` to `.env.local` and fill in the two `VITE_` values.
+3. In the Supabase dashboard set the Site URL and redirect URLs (see `docs/ADMIN.md`).
 
-One passcode gates everything, including the built bundle. The anon key is read-only by policy
-and every write goes through a serverless function holding the service-role key, so a leaked key
-can read but never corrupt. Details in [`docs/EDD.md`](docs/EDD.md) D-026…D-030.
+Sign-in is email and password with a persistent session. Row-level security decides who can see
+and change each schedule; `npm run verify:db` proves it against the live project.
 
 ## Commands
 
@@ -60,7 +59,6 @@ can read but never corrupt. Details in [`docs/EDD.md`](docs/EDD.md) D-026…D-03
 | `npm test` | Engine + store tests (Vitest) |
 | `npm run e2e` | Browser smoke tests (Playwright) |
 | `npm run build` | Production build to `dist/` |
-| `npx vercel dev` | Full stack locally: passcode gate, API functions, Supabase |
 
 Browser tests need `npx playwright install chromium` and, on Debian/Ubuntu,
 `sudo apt-get install -y libnss3 libnspr4 libasound2t64`.

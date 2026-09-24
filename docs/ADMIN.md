@@ -29,29 +29,32 @@ sudo apt-get install -y libnss3 libnspr4 libasound2t64   # Chromium's shared lib
 
 | Env | Where | How |
 |---|---|---|
-| Local, no backend | localhost:5173 | `npm run dev` — IndexedDB, no passcode |
-| Local, full stack | localhost:3000 | `npx vercel dev` with `.env.local` — Supabase + passcode |
+| Local, no backend | localhost:5173 | `npm run dev` with no `.env.local` — IndexedDB, no accounts |
+| Local, shared | localhost:5173 | `npm run dev` with `.env.local` — real Supabase, sign-in required |
 | Prod | https://marga-planner.vercel.app | push to `main` |
 
-`npm run dev` runs the app against IndexedDB, which is what the browser test suite uses. The
-passcode gate and the shared database only exist under `vercel dev` and on Vercel, because both
-need the serverless functions.
+`npm run dev` reads `.env.local`: with Supabase values it runs signed-in against the real project;
+without them it runs against IndexedDB with no accounts. The browser test suite always forces the
+local path (`VITE_FORCE_LOCAL=1`).
 
-Environment variables are listed in `.env.example`. `SUPABASE_SECRET_KEY` bypasses RLS and
-must never appear in anything `VITE_`-prefixed — that prefix compiles a value into the public
-bundle.
+| Check | Command |
+|---|---|
+| Database access rules, live | `npm run verify:db` — two throwaway accounts, 21 checks, cleaned up after |
+| Accounts in a browser, live | `npm run dev`, then `npm run e2e:accounts` |
 
-### Rotating the passcode
+Both need `SUPABASE_SECRET_KEY` in `.env.local` to create and delete their test accounts.
 
-Change `APP_PASSCODE` in Vercel and redeploy. Existing sessions stay valid until their cookie
-expires; to sign everyone out immediately, change `SESSION_SECRET` as well.
+### Supabase settings that live only in the dashboard
+
+Authentication → URL Configuration: Site URL `https://marga-planner.vercel.app`, Redirect URLs
+`https://marga-planner.vercel.app/**` and `http://localhost:5173/**`. Authentication → Emails →
+SMTP: a real sender before real users. Schema changes are migrations in `supabase/migrations/`.
 
 ## Layout
 
 ```
-api/             Vercel serverless functions (passcode, writes, editor lock)
 docs/            PRD.md, EDD.md, ADMIN.md, STATUS.md
-proxy.ts         Vercel Routing Middleware — the passcode gate
+scripts/         verify-rls.mjs — live check of the database's access rules
 supabase/        migrations/
 e2e/             Playwright browser smoke tests
 src/
@@ -87,7 +90,7 @@ render. Neither builds its own.
 | Summary group hue assignment | `src/ui/colors.ts` |
 | Palettes, bar/milestone formatting, persistence | `src/ui/settings.ts` |
 | PNG export of the chart | `src/ui/exportPng.ts` |
-| Passcode gate, session cookie | `proxy.ts`, `api/_session.ts` |
+| Accounts, sign-in, sessions | `src/persist/auth.ts`, `src/ui/AuthScreen.tsx`, `src/ui/ProfilePage.tsx` |
 | Shared persistence and live sync | `src/persist/supabaseRepo.ts`, `src/persist/realtime.ts` |
 | Editor lock rule (shared by client and API) | `src/persist/lock.ts` |
 | Database schema | `supabase/migrations/0001_init.sql` |

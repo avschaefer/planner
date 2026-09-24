@@ -5,10 +5,9 @@ import type { ScheduleRepo } from './repo';
 export { lockIsFree, LOCK_STALE_MS } from './lock';
 
 /**
- * The shared-database implementation of ScheduleRepo (EDD D-014). Reads come
- * straight from Supabase on the anon key, which RLS limits to SELECT; writes
- * go through the passcode-gated functions in api/, which hold the service-role
- * key. No call site in the store changes.
+ * The shared-database implementation of ScheduleRepo (EDD D-014). Everything
+ * runs as the signed-in user; row-level security confines them to schedules
+ * they are a member of. No call site in the store changes.
  */
 
 export const TABLE = 'projects';
@@ -69,38 +68,54 @@ export const isShared =
 
 let client: SupabaseClient | null = null;
 
+/**
+ * Small POST bodies go out with `keepalive`, so a save made as the tab closes
+ * still lands. The browser caps keepalive bodies at 64 kB, so larger documents
+ * go without it rather than fail.
+ */
+const keepaliveFetch: typeof fetch = (input, init) => {
+  const body = init?.body;
+  const small = typeof body === 'string' && body.length < 60_000;
+  return fetch(input, init?.method === 'POST' && small ? { ...init, keepalive: true } : init);
+};
+
+/**
+ * The one Supabase client. It holds the signed-in user's session — persisted
+ * in the browser and refreshed automatically, so people stay signed in without
+ * an email code each visit — and every query runs as that user, so row-level
+ * security decides what they can see and change.
+ */
 export function supabase(): SupabaseClient {
   if (!client) {
     if (!isShared) throw new Error('Supabase is not configured for this build.');
     client = createClient(url!, anonKey!, {
-      auth: { persistSession: false },
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        flowType: 'pkce',
+      },
+      global: { fetch: keepaliveFetch },
       realtime: { params: { eventsPerSecond: 20 } },
     });
   }
   return client;
 }
 
-/** Writes are POSTs to our own functions; the session cookie rides along. */
-async function post(path: string, body: unknown): Promise<unknown> {
-  const response = await fetch(path, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    credentials: 'same-origin',
-    // So a save in flight when the tab closes still lands.
-    keepalive: true,
-    body: JSON.stringify(body),
-  });
-  const payload = (await response.json().catch(() => ({}))) as { error?: string; editorId?: string };
-  if (!response.ok) {
-    const error = new Error(payload.error ?? `Request failed (${response.status})`) as Error & {
-      status?: number;
-      editorId?: string;
-    };
-    error.status = response.status;
-    error.editorId = payload.editorId;
-    throw error;
+export type RepoError = Error & { status?: number; editorId?: string };
+
+/** Turn a Postgres error into the shape the store already handles. */
+function repoError(error: { message: string; code?: string }): RepoError {
+  const e = new Error(error.message) as RepoError;
+  const locked = /^locked:(.*)$/.exec(error.message);
+  if (locked) {
+    e.status = 409;
+    e.editorId = locked[1];
+    e.message = 'Someone else is editing this schedule.';
+  } else if (error.code === '42501' || /row-level security|permission denied/i.test(error.message)) {
+    e.status = 403;
   }
-  return payload;
+  return e;
 }
 
 export function createSupabaseRepo(clientId: () => string): ScheduleRepo {
@@ -110,7 +125,7 @@ export function createSupabaseRepo(clientId: () => string): ScheduleRepo {
         .from(TABLE)
         .select('id, name, updated_at, task_count')
         .order('updated_at', { ascending: false });
-      if (error) throw new Error(error.message);
+      if (error) throw repoError(error);
       return (data ?? []).map((row) => ({
         id: row.id as string,
         name: row.name as string,
@@ -121,16 +136,28 @@ export function createSupabaseRepo(clientId: () => string): ScheduleRepo {
 
     async load(id) {
       const { data, error } = await supabase().from(TABLE).select('*').eq('id', id).maybeSingle();
-      if (error) throw new Error(error.message);
+      if (error) throw repoError(error);
       return data ? rowToDoc(data as ProjectRow) : undefined;
     },
 
+    /* The lock check and the write are one database call (save_project), so
+       they cannot be split by another editor between them. */
     async save(doc) {
-      await post('/api/save', { doc, clientId: clientId() });
+      const { error } = await supabase().rpc('save_project', {
+        p_id: doc.id,
+        p_name: doc.name,
+        p_data_date: doc.dataDate,
+        p_tasks: doc.tasks,
+        p_links: doc.links,
+        p_updated_at: doc.updatedAt,
+        p_client_id: clientId(),
+      });
+      if (error) throw repoError(error);
     },
 
     async remove(id) {
-      await post('/api/delete', { id });
+      const { error } = await supabase().from(TABLE).delete().eq('id', id);
+      if (error) throw repoError(error);
     },
   };
 }
@@ -153,9 +180,12 @@ export async function claimEditor(
   clientId: string,
   force = false,
 ): Promise<{ granted: boolean; editorId: string | null }> {
-  const result = (await post('/api/claim', { id, clientId, force })) as {
-    granted?: boolean;
-    editorId?: string | null;
-  };
+  const { data, error } = await supabase().rpc('claim_editor', {
+    p_id: id,
+    p_client_id: clientId,
+    p_force: force,
+  });
+  if (error) throw repoError(error);
+  const result = (data ?? {}) as { granted?: boolean; editorId?: string | null };
   return { granted: result.granted === true, editorId: result.editorId ?? null };
 }

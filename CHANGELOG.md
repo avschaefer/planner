@@ -7,6 +7,11 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Added
 
+- **User accounts** on Supabase Auth: sign up, confirm by email once, then sign in with a password and stay signed in on that device. Forgotten passwords reset by email. [R-061]
+- Every schedule belongs to an account; the database enforces who can see and change it (row-level security), with a membership table ready for sharing. [R-065]
+- Profile page: name, email, plan, change password, sign out. An initials avatar on the project list opens it. [R-066]
+- `profiles.plan`, owned by the server, for subscriptions later. [R-067]
+- `npm run verify:db` proves the access rules against the live project with two throwaway accounts; `npm run e2e:accounts` walks sign-in to sign-out in a browser.
 - Settings → Colour by: *Summary group* (as before) or *Type* — every summary one colour, every activity a second, every milestone a third, each picked from its own row of swatches. Critical still overrides. Applies to the chart, the table and PNG export. [R-057]
 - After dragging an activity that has a predecessor, a prompt offers to record the move as lag on the driving link instead of a Start No Earlier Than constraint. Dragging a driven activity *earlier* than its logic now works, by reducing the lag. [R-017]
 - Summaries can be linked. A link from a summary reads the group's extent — FS from `s2` starts the successor after `s2`'s last activity — and a link onto a summary holds back everything inside it. Links can be dragged onto summary rows and typed into their predecessor cells. [R-018]
@@ -51,6 +56,8 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Changed
 
+- The editor lock and save are one database function, so the lock holds however the client behaves. [R-064]
+- The hero title is 15% smaller.
 - Wordmark: "MARGA" as spaced capitals in Outfit beside the mark, and a large hairline hero "MARGA" above the card on both the home and passcode pages, sized to the window so it is never clipped. The passcode page now matches — still aurora, frosted card, same logotype and hero word.
 - The home page background is a living aurora — flowing ribbons and soft colour fields in the accent with lilac, rose, peach and sky — behind a frosted-glass card. Seeded afresh each visit, drawn on a tiny canvas that CSS scales and blurs, and still under reduced-motion settings.
 - Dependency lines use one elbow — right along the predecessor's row, then down into the successor — as scheduling tools draw them. Lag lengthens the horizontal run. [R-035]
@@ -93,6 +100,7 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Removed
 
+- The shared passcode, its gate (`proxy.ts`) and the Vercel API functions (`api/`). Row-level security replaces them. `APP_PASSCODE` and `SESSION_SECRET` are no longer used.
 - The selection inspector card; its content moved to the Float column and the bar tooltip.
 - The stored `Task.code` field, replaced by derived outline numbering.
 - The dark theme. Light only.

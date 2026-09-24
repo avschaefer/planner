@@ -115,13 +115,15 @@ Priority: **P0** = the app is pointless without it · **P1** = needed before it'
 
 | ID | Requirement | Acceptance criteria | Pri |
 |---|---|---|---|
-| R-061 | One shared passcode, no accounts | A single passcode gates every route, including the built bundle. Success sets a signed, HttpOnly session cookie. No sign-up, no roles, no per-user anything | P1 |
+| R-061 | User accounts | Email and password on Supabase Auth. An address is confirmed once by email; after that a person signs in with their password and stays signed in on that device (the session refreshes silently) — no email code per visit. Forgotten passwords reset by email link | P1 |
 | R-062 | Schedules live in a shared database | Every project is one row in Supabase Postgres, mirroring `ProjectDoc`. Creating, editing and deleting work from any machine behind the passcode | P1 |
 | R-063 | Live viewing | A change made by one person appears on every other connected screen within about a second, with no refresh | P1 |
-| R-064 | One editor at a time | The first person to edit holds the editor lock; everyone else sees a read-only banner and can take over with one click. The lock is abandoned 90s after its holder goes quiet | P1 |
-| R-065 | Writes cannot bypass the passcode | The anon key is read-only by RLS and is never served to an unauthenticated visitor; every write goes through a server function holding the service-role key | P1 |
+| R-064 | One editor at a time | The first person to edit holds the editor lock; everyone else sees a read-only banner and can take over with one click. Enforced in the database (save_project, claim_editor), so it holds however the client behaves. Abandoned 90s after its holder goes quiet | P1 |
+| R-065 | Every schedule belongs to an account | Row-level security: a schedule is visible only to its members (project_members) and writable only by owners and editors. A signed-out client reads nothing. Verified against the live project by `npm run verify:db` | P1 |
+| R-066 | Profile page | Name (editable), email, plan (read-only), change password, sign out | P2 |
+| R-067 | Ready for subscriptions | Each account has a server-owned `profiles.plan`; users cannot write it. No shared secret exists that would let one subscription serve many people | P2 |
 
-**Totals: 46 requirements — P0: 18 · P1: 21 · P2: 7**
+**Totals: 48 requirements — P0: 18 · P1: 21 · P2: 9**
 
 ---
 
@@ -151,7 +153,7 @@ Explicitly not built, at any priority:
 | Procurement | WBS/OBS management screens |
 | Complex calendar rules (shift patterns, per-activity calendars) | Administrative/configuration screens |
 | Baselines and planned-vs-actual variance | Progress tracking / percent complete |
-| Authentication, accounts, billing, marketing pages *(one shared passcode only — R-061)* | Concurrent multi-user editing *(one editor at a time — R-064)* |
+| Billing, marketing pages *(accounts are in — R-061; billing is prepared for, not built — R-067)* | Concurrent multi-user editing *(one editor at a time — R-064)* |
 | Reporting, exports to PDF/XER/MPP *(PNG of the chart is in — R-058)* | Mobile layout |
 
 Holidays are out entirely — the calendar is Mon–Fri with no exception list.

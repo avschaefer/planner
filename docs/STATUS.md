@@ -1,15 +1,28 @@
 # STATUS — Marga
 
-**Phase:** live at https://marga-planner.vercel.app · all suites green
+**Phase:** live at https://marga-planner.vercel.app with user accounts · all suites green
 **Updated:** 2026-09-24
 
 ---
 
 ## Now
 
-- [ ] **Plan a real program in it** and see what breaks. `npm run dev` → http://localhost:5173
+- [ ] **Supabase → Authentication → URL Configuration** (owner, dashboard only): Site URL
+      `https://marga-planner.vercel.app`; Redirect URLs `https://marga-planner.vercel.app/**` and
+      `http://localhost:5173/**`. Until this is set, confirmation and reset links point at localhost.
+- [ ] **Custom SMTP** (Authentication → Emails → SMTP) before inviting real users. The built-in
+      sender is for testing and allows only a few emails an hour.
+- [ ] Sign up on the live site, then have the pre-accounts "AV Test" schedule attached to the new
+      account (it has no owner, so it is invisible to everyone until then).
+- [ ] Remove `APP_PASSCODE` and `SESSION_SECRET` from Vercel — unused since accounts.
+- [ ] **Plan a real program in it** and see what breaks.
 
 ## Recently completed
+
+**2026-09-24 — user accounts.** Supabase Auth (email + password, persistent sessions), row-level
+security per account with a membership table ready for sharing, the editor lock moved into the
+database, profile page. The shared passcode, its gate and the `api/` functions are gone. Verified
+live: 21 database checks (`npm run verify:db`) and a full browser walk (`npm run e2e:accounts`).
 
 **2026-09-24 — scheduling conventions.** One-elbow FS lines, bracket summaries, standard SNET wording, lag offered after a drag (D-033, D-034).
 
@@ -32,7 +45,7 @@ the stored `Task.code`, the dark theme and the pin glyph were removed. See `CHAN
 ## Built
 
 All 46 requirements have an implementation. Every row below is verified by a test that has run,
-including the shared backend: the full chain — passcode, shared write, live sync, editor lock
+including the shared backend: the full chain — sign-in, per-account isolation, live sync, editor lock
 hand-off — passed against the real Supabase project (`npm run e2e:stack`).
 
 | Area | State |
@@ -65,7 +78,7 @@ hand-off — passed against the real Supabase project (`npm run e2e:stack`).
 | Realtime subscription (R-063) | Built · verified live in the browser |
 | IndexedDB persistence, JSON import/export | Built · reload test |
 
-**Test suites:** 90 unit tests (Vitest) · 21 browser tests (Playwright). Both pass as of
+**Test suites:** 68 unit tests (Vitest) · 21 browser tests (Playwright). Both pass as of
 2026-09-23. The browser suite runs against the IndexedDB fallback, which is deliberate: it
 proves the local path still works and keeps the suite runnable without a network.
 
@@ -91,7 +104,7 @@ Only once the core is judged worth keeping.
 | 1 | Dependency-arrow lane assignment (currently a naive `i % 3` offset) | R-035 |
 | 2 | Deadline constraints and negative float | Q-4 |
 
-| 4 | Real accounts, if the audience widens past a team that trusts one shared passcode | — |
+| 4 | Sharing schedules between accounts (project_members is in place) | — |
 
 ## Blocked
 
@@ -99,7 +112,7 @@ Nothing.
 
 ## Decisions log
 
-`docs/EDD.md` §6, D-001 … D-035. The four that shaped the build:
+`docs/EDD.md` §6, D-001 … D-040. The four that shaped the build:
 
 - **D-006** — summary rows are containers and carry no dependencies
 - **D-007** — dragging an activity with predecessors pins it (visible, removable) rather than
