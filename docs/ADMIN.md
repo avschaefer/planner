@@ -39,8 +39,8 @@ local path (`VITE_FORCE_LOCAL=1`).
 
 | Check | Command |
 |---|---|
-| Database access rules, live | `npm run verify:db` — two throwaway accounts, 21 checks, cleaned up after |
-| Accounts in a browser, live | `npm run dev`, then `npm run e2e:accounts` |
+| Database access rules, live | `npm run verify:db` — two throwaway accounts, 43 checks (isolation, sharing, roles, lock, deletion), cleaned up after |
+| Accounts and sharing in a browser, live | `npm run dev`, then `npm run e2e:accounts` (stop the dev server before `npm run e2e`, which needs its own local-mode server) |
 
 Both need `SUPABASE_SECRET_KEY` in `.env.local` to create and delete their test accounts.
 

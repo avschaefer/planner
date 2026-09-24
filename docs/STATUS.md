@@ -17,6 +17,8 @@
 
 ## Recently completed
 
+**2026-09-24 — sharing and account management.** Share by email as editor or viewer, live shared lists, leave a shared schedule, change email, delete account with typed confirmation, sign-up fits one screen. 43 database checks and a two-account browser walk pass live.
+
 **2026-09-24 — user accounts.** Supabase Auth (email + password, persistent sessions), row-level
 security per account with a membership table ready for sharing, the editor lock moved into the
 database, profile page. The shared passcode, its gate and the `api/` functions are gone. Verified
@@ -102,7 +104,7 @@ Only once the core is judged worth keeping.
 | 1 | Dependency-arrow lane assignment (currently a naive `i % 3` offset) | R-035 |
 | 2 | Deadline constraints and negative float | Q-4 |
 
-| 4 | Sharing schedules between accounts (project_members is in place) | — |
+| 4 | Pending invitations, so a schedule can be shared with someone who has not signed up yet | R-068 |
 
 ## Blocked
 
@@ -110,7 +112,7 @@ Nothing.
 
 ## Decisions log
 
-`docs/EDD.md` §6, D-001 … D-040. The four that shaped the build:
+`docs/EDD.md` §6, D-001 … D-043. The four that shaped the build:
 
 - **D-006** — summary rows are containers and carry no dependencies
 - **D-007** — dragging an activity with predecessors pins it (visible, removable) rather than

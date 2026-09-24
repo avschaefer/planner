@@ -17,7 +17,7 @@ function relativeTime(iso: string): string {
 }
 
 export function ProjectList() {
-  const { projects, loading, createProject, openProject, deleteProject, importDoc } = useStore();
+  const { projects, loading, createProject, openProject, deleteProject, leaveProject, importDoc } = useStore();
   const [name, setName] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
@@ -82,22 +82,43 @@ export function ProjectList() {
             <div key={p.id} className="pitem" onClick={() => void openProject(p.id)}>
               <span className="rule" aria-hidden="true" />
               <span className="name">{p.name}</span>
+              {p.role && p.role !== 'owner' && (
+                <span className="tag" title="Shared with you">
+                  {p.role === 'editor' ? 'Shared · can edit' : 'Shared · view only'}
+                </span>
+              )}
               <span className="count">
                 {p.taskCount} {p.taskCount === 1 ? 'activity' : 'activities'}
               </span>
               <span className="when">{relativeTime(p.updatedAt)}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="del"
-                title="Delete schedule"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (confirm(`Delete "${p.name}"? This cannot be undone.`)) void deleteProject(p.id);
-                }}
-              >
-                Delete
-              </Button>
+              {p.role && p.role !== 'owner' ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="del"
+                  title="Remove this from your list"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm(`Leave "${p.name}"? You will lose access until the owner shares it again.`))
+                      void leaveProject(p.id);
+                  }}
+                >
+                  Leave
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="del"
+                  title="Delete schedule"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm(`Delete "${p.name}"? This cannot be undone.`)) void deleteProject(p.id);
+                  }}
+                >
+                  Delete
+                </Button>
+              )}
             </div>
           ))}
         </div>

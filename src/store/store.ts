@@ -15,6 +15,7 @@ import type {
   Link,
   LinkType,
   ProjectDoc,
+  ProjectRole,
   ProjectSummary,
   ScheduleResult,
   Task,
@@ -23,6 +24,7 @@ import type {
 } from '../engine/types';
 import { currentAccount, onAuthChange, signOut as authSignOut, type Account } from '../persist/auth';
 import { idbRepo } from '../persist/idbRepo';
+import { removePerson } from '../persist/sharing';
 import { subscribeProject, subscribeProjects } from '../persist/realtime';
 import type { ScheduleRepo } from '../persist/repo';
 import {
@@ -106,6 +108,8 @@ interface State {
   settings: Settings;
   /** True when someone else holds the editor lock. Every edit is refused. */
   readOnly: boolean;
+  /** Your access to the open schedule. A viewer can read it and nothing more. */
+  role: ProjectRole;
   /** Who holds it, when that is not us. */
   editorId: string | null;
   /** False for a local-only build; the editor banner only matters when shared. */
@@ -121,6 +125,8 @@ interface State {
   openProject(id: string): Promise<void>;
   closeProject(): void;
   deleteProject(id: string): Promise<void>;
+  /** Stop seeing a schedule someone shared with you. */
+  leaveProject(id: string): Promise<void>;
   renameProject(name: string): void;
   importDoc(doc: ProjectDoc): Promise<void>;
 
@@ -324,7 +330,8 @@ export const useStore = create<State>((set, get) => {
         doc: change.doc,
         schedule: scheduleProject(change.doc),
         editorId: change.editorId,
-        readOnly: !free,
+        // A viewer is never "locked out" — they were never going to edit.
+        readOnly: !free && get().role !== 'viewer',
       });
     });
   }
@@ -351,8 +358,12 @@ export const useStore = create<State>((set, get) => {
    * a drag to an undo, arrives here.
    */
   function commit(mutate: (draft: ProjectDoc) => void | boolean, opts: { merge?: boolean } = {}) {
-    const { doc, undoStack, readOnly } = get();
+    const { doc, undoStack, readOnly, role } = get();
     if (!doc) return;
+    if (role === 'viewer') {
+      get().notify('You have view-only access to this schedule.');
+      return;
+    }
     if (readOnly) {
       get().notify('Someone else is editing. Take over to make changes.');
       return;
@@ -397,6 +408,7 @@ export const useStore = create<State>((set, get) => {
     loading: true,
     settings: loadSettings(),
     readOnly: false,
+    role: 'owner',
     editorId: null,
     shared: isShared,
     account: null,
@@ -463,6 +475,7 @@ export const useStore = create<State>((set, get) => {
         redoStack: [],
         selection: EMPTY_SELECTION,
         readOnly: false,
+        role: 'owner',
         editorId: null,
         projects: await repo.list(),
       });
@@ -473,6 +486,7 @@ export const useStore = create<State>((set, get) => {
       const doc = await repo.load(id);
       if (!doc) return;
       releaseLocally();
+      const role = (await repo.roleOf?.(id).catch(() => null)) ?? 'owner';
       // Opening is not editing: the lock is claimed on the first change, so
       // twenty people can watch without any of them taking it.
       const { editorId, editorSeen } = await readEditor(id).catch(() => ({
@@ -487,8 +501,9 @@ export const useStore = create<State>((set, get) => {
         undoStack: [],
         redoStack: [],
         selection: EMPTY_SELECTION,
+        role,
         editorId: free ? null : editorId,
-        readOnly: !free,
+        readOnly: !free && role !== 'viewer',
       });
       watch(id);
     },
@@ -513,6 +528,14 @@ export const useStore = create<State>((set, get) => {
       set({ projects: await repo.list() });
     },
 
+    async leaveProject(id) {
+      const me = get().account?.id;
+      if (!me) return;
+      const error = await removePerson(id, me);
+      if (error) get().notify(error);
+      set({ projects: await repo.list() });
+    },
+
     renameProject(name) {
       commit((d) => {
         d.name = name;
@@ -530,6 +553,7 @@ export const useStore = create<State>((set, get) => {
         redoStack: [],
         selection: EMPTY_SELECTION,
         readOnly: false,
+        role: 'owner',
         editorId: null,
         projects: await repo.list(),
       });

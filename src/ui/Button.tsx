@@ -9,8 +9,9 @@ import type { ButtonHTMLAttributes } from 'react';
  * - primary   filled accent — the one main action on a screen
  * - secondary outlined — ordinary actions
  * - ghost     borderless — tertiary actions and icon buttons
+ * - danger    filled red — irreversible actions, always behind a confirmation
  */
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 export type ButtonSize = 'md' | 'sm';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

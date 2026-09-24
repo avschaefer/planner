@@ -109,11 +109,11 @@ test('accounts: sign in, persist, profile, editor lock, sign out', async ({ brow
   await pageA.locator('.toolbar button[title="All schedules"]').click();
   await pageA.locator('.avatar').click();
   await expect(pageA.locator('.account-title')).toHaveText('Account');
-  await expect(pageA.locator('.auth-readonly').first()).toHaveText(email);
-  await expect(pageA.locator('.auth-readonly').nth(1)).toHaveText('Free');
+  await expect(pageA.getByLabel('Email')).toHaveValue(email);
+  await expect(pageA.locator('.account-plan b')).toHaveText('Free');
   await pageA.getByLabel('Name').fill('Grace Hopper');
-  await pageA.getByRole('button', { name: 'Save name' }).click();
-  await expect(pageA.locator('.notice')).toHaveText('Name saved.');
+  await pageA.getByRole('button', { name: 'Save changes' }).click();
+  await expect(pageA.locator('.notice')).toHaveText('Saved.');
   await pageA.getByRole('button', { name: 'Schedules' }).click();
   await expect(pageA.locator('.avatar')).toHaveText('GH');
 
@@ -124,4 +124,102 @@ test('accounts: sign in, persist, profile, editor lock, sign out', async ({ brow
   await pageA.reload();
   await expect(pageA.locator('.auth-title')).toHaveText('Sign in', { timeout: 15_000 });
   await a.close();
+});
+
+test('sharing: viewer is read-only, editor can edit, delete account', async ({ browser }) => {
+  test.setTimeout(150_000);
+  const second = `marga.e2e.b.${Date.now()}@example.com`;
+  const { data, error } = await admin.auth.admin.createUser({
+    email: second,
+    password,
+    email_confirm: true,
+    user_metadata: { display_name: 'Bea Collaborator' },
+  });
+  if (error) throw error;
+  const secondId = data.user.id;
+
+  try {
+    // Owner makes a schedule.
+    const a = await browser.newContext();
+    const pageA = await a.newPage();
+    await signIn(pageA);
+    await pageA.getByPlaceholder('Name a new schedule…').fill('Shared plan');
+    await pageA.getByPlaceholder('Name a new schedule…').press('Enter');
+    await pageA.getByRole('button', { name: 'Add activity' }).click();
+    await pageA.locator('.trow input').fill('First task');
+    await pageA.locator('.trow input').press('Enter');
+    await pageA.locator('.trow input').press('Escape');
+    await pageA.waitForTimeout(1500);
+
+    // Unknown email is refused with a helpful message.
+    await pageA.getByRole('button', { name: 'Share', exact: true }).click();
+    await pageA.getByLabel('Email').fill('nobody@example.com');
+    await pageA.locator('.share-invite').getByRole('button', { name: 'Share' }).click();
+    await expect(pageA.locator('.modal .auth-error')).toContainText('No Marga account uses that email');
+
+    // Share with the second account as view-only.
+    await pageA.getByLabel('Email').fill(second);
+    await pageA.locator('.share-invite').getByRole('button', { name: 'View only' }).click();
+    await pageA.locator('.share-invite').getByRole('button', { name: 'Share' }).click();
+    await expect(pageA.locator('.share-people li')).toHaveCount(2);
+
+    // The collaborator sees it appear, tagged, and cannot edit.
+    const b = await browser.newContext();
+    const pageB = await b.newPage();
+    await pageB.goto('/');
+    await pageB.getByLabel('Email').fill(second);
+    await pageB.getByLabel('Password').fill(password);
+    await pageB.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await expect(pageB.locator('.pitem .name')).toHaveText('Shared plan', { timeout: 15_000 });
+    await expect(pageB.locator('.pitem .tag')).toHaveText('Shared · view only');
+    await pageB.locator('.pitem').first().click();
+    await expect(pageB.locator('.editing-banner')).toContainText('View only');
+    await pageB.locator('.trow').first().locator('.td.code').click();
+    await pageB.keyboard.press('m');
+    await expect(pageB.locator('.notice')).toContainText('view-only');
+    await expect(pageB.locator('.ms')).toHaveCount(0);
+
+    // Owner flips them to "can edit"; the collaborator reopens and edits.
+    await pageA.locator('.share-people li').nth(1).getByRole('button', { name: 'Can edit' }).click();
+    await pageA.keyboard.press('Escape');
+    await pageA.waitForTimeout(800);
+    await pageB.reload();
+    await expect(pageB.locator('.pitem .tag')).toHaveText('Shared · can edit', { timeout: 15_000 });
+    await pageB.locator('.pitem').first().click();
+    // The owner edited moments ago, so the one-editor-at-a-time lock is still
+    // theirs; the collaborator takes over, exactly as a second person would.
+    await expect(pageB.locator('.editing-banner')).toContainText('Someone else is editing');
+    await pageB.locator('.editing-banner').getByRole('button', { name: 'Take over editing' }).click();
+    await expect(pageB.locator('.editing-banner')).toHaveCount(0);
+    await pageB.locator('.trow').first().locator('.td.dur').click();
+    await pageB.locator('.trow').first().locator('input').fill('9');
+    await pageB.locator('.trow').first().locator('input').press('Enter');
+    await pageB.waitForTimeout(1500);
+
+    // The owner's next look shows the collaborator's change.
+    await pageA.locator('.toolbar button[title="All schedules"]').click();
+    await pageA.locator('.pitem').first().click();
+    await expect(pageA.locator('.trow').first().locator('.td.dur')).toHaveText('9d', { timeout: 15_000 });
+
+    // Collaborator deletes their own account, behind a typed confirmation.
+    await pageB.locator('.toolbar button[title="All schedules"]').click();
+    await pageB.locator('.avatar').click();
+    await pageB.getByRole('button', { name: 'Delete account' }).first().click();
+    const confirm = pageB.getByRole('button', { name: 'Delete account' }).last();
+    await expect(confirm).toBeDisabled();
+    await pageB.getByPlaceholder(second).fill('wrong@example.com');
+    await expect(confirm).toBeDisabled();
+    await pageB.getByPlaceholder(second).fill(second);
+    await expect(confirm).toBeEnabled();
+    await confirm.click();
+    await expect(pageB.locator('.auth-title')).toHaveText('Sign in', { timeout: 15_000 });
+
+    // The owner's schedule is untouched.
+    await pageA.locator('.toolbar button[title="All schedules"]').click();
+    await expect(pageA.locator('.pitem .name', { hasText: 'Shared plan' })).toBeVisible();
+    await a.close();
+    await b.close();
+  } finally {
+    await admin.auth.admin.deleteUser(secondId).catch(() => {});
+  }
 });

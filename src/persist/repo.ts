@@ -1,4 +1,4 @@
-import type { ProjectDoc, ProjectSummary } from '../engine/types';
+import type { ProjectDoc, ProjectRole, ProjectSummary } from '../engine/types';
 
 /**
  * Every method is async even though IndexedDB is local, so that swapping in a
@@ -9,4 +9,6 @@ export interface ScheduleRepo {
   load(id: string): Promise<ProjectDoc | undefined>;
   save(doc: ProjectDoc): Promise<void>;
   remove(id: string): Promise<void>;
+  /** The caller's role on a schedule. Local builds are always the owner. */
+  roleOf?(id: string): Promise<ProjectRole | null>;
 }

@@ -134,9 +134,9 @@ export function AuthScreen({ recovery = false }: { recovery?: boolean }) {
                 autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
                 autoFocus={mode === 'recovery'}
                 minLength={mode === 'signin' ? undefined : MIN_PASSWORD}
+                placeholder={mode === 'signin' ? undefined : `At least ${MIN_PASSWORD} characters`}
                 required
               />
-              {mode !== 'signin' && <em>At least {MIN_PASSWORD} characters.</em>}
             </label>
           )}
 

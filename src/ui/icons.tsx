@@ -95,3 +95,11 @@ export const PanelLeft = () => (
     <path d="M6.3 2.8v10.4" />
   </svg>
 );
+
+export const Share = () => (
+  <svg {...base}>
+    <circle cx="6" cy="5.5" r="2.2" />
+    <path d="M2.2 13c.3-2.2 1.9-3.5 3.8-3.5s3.5 1.3 3.8 3.5" />
+    <path d="M11 4.2v4.4M8.8 6.4h4.4" />
+  </svg>
+);

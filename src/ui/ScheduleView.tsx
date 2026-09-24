@@ -7,6 +7,7 @@ import { exportGanttPng } from './exportPng';
 import { Gantt } from './Gantt';
 import * as Icon from './icons';
 import { SettingsModal } from './Settings';
+import { ShareModal } from './ShareModal';
 import { HEAD_H, ROW_H, visibleRows } from './rows';
 import { TaskTable, TaskTableHead, type Editing } from './TaskTable';
 import { majorTicks, minorTicks, buildTimeline, todayX } from './timeline';
@@ -27,6 +28,8 @@ export function ScheduleView() {
   const [editing, setEditing] = useState<Editing | null>(null);
   const [showKeys, setShowKeys] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const shared = useStore((s) => s.shared);
   const [viewportWidth, setViewportWidth] = useState(900);
 
   const ganttRef = useRef<HTMLDivElement>(null);
@@ -270,6 +273,12 @@ export function ScheduleView() {
           <b>{formatWorkDay(finish, settings.dateFormat)}</b>
         </span>
 
+        {shared && (
+          <Button variant="secondary" onClick={() => setShowShare(true)} title="Share this schedule">
+            <Icon.Share /> Share
+          </Button>
+        )}
+
         <div className="cluster">
           <Button
             variant="ghost"
@@ -354,6 +363,7 @@ export function ScheduleView() {
 
       {showKeys && <Shortcuts onClose={() => setShowKeys(false)} />}
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      {showShare && <ShareModal projectId={doc.id} onClose={() => setShowShare(false)} />}
     </>
   );
 }

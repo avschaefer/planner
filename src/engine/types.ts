@@ -45,11 +45,15 @@ export interface ProjectDoc {
   updatedAt: string;
 }
 
+export type ProjectRole = 'owner' | 'editor' | 'viewer';
+
 export interface ProjectSummary {
   id: string;
   name: string;
   updatedAt: string;
   taskCount: number;
+  /** The caller's access. Absent in a local build, where everything is yours. */
+  role?: ProjectRole;
 }
 
 /** Derived per schedule run. Never stored. */

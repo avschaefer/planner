@@ -120,10 +120,11 @@ Priority: **P0** = the app is pointless without it · **P1** = needed before it'
 | R-063 | Live viewing | A change made by one person appears on every other connected screen within about a second, with no refresh | P1 |
 | R-064 | One editor at a time | The first person to edit holds the editor lock; everyone else sees a read-only banner and can take over with one click. Enforced in the database (save_project, claim_editor), so it holds however the client behaves. Abandoned 90s after its holder goes quiet | P1 |
 | R-065 | Every schedule belongs to an account | Row-level security: a schedule is visible only to its members (project_members) and writable only by owners and editors. A signed-out client reads nothing. Verified against the live project by `npm run verify:db` | P1 |
-| R-066 | Profile page | Name (editable), email, plan (read-only), change password, sign out | P2 |
+| R-066 | Profile page | Name and email (editable — an email change is confirmed by link before it takes effect), plan (read-only), change password, sign out, and delete account behind a warning that names what is lost and a typed-email confirmation. Fits without scrolling | P2 |
+| R-068 | Share a schedule with other accounts | The owner shares by email as **Can edit** or **View only**, changes or removes anyone's access, and sees who has it. A collaborator sees it in their list with a tag, live, and can leave. Viewers read but never write — enforced in the database. Two people who use it at different times both have editing control; the editor lock covers the rest | P1 |
 | R-067 | Ready for subscriptions | Each account has a server-owned `profiles.plan`; users cannot write it. No shared secret exists that would let one subscription serve many people | P2 |
 
-**Totals: 48 requirements — P0: 18 · P1: 21 · P2: 9**
+**Totals: 49 requirements — P0: 18 · P1: 22 · P2: 9**
 
 ---
 

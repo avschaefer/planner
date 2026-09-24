@@ -1,14 +1,15 @@
 import { useState, type FormEvent } from 'react';
-import { MIN_PASSWORD, setPassword, updateDisplayName } from '../persist/auth';
+import { changeEmail, MIN_PASSWORD, setPassword, updateDisplayName } from '../persist/auth';
 import { useStore } from '../store/store';
 import { Button } from './Button';
+import { DeleteAccountModal } from './DeleteAccountModal';
 import { GlassPage } from './GlassPage';
 import * as Icon from './icons';
 
 /**
- * The account, and only what a person needs from it: their name, their email,
- * their plan, their password, and a way out. The plan is shown but not
- * editable — it is written by the server when billing exists.
+ * The account, and only what a person needs from it: name, email, plan,
+ * password, and a way out. The plan is shown but not editable — it is written
+ * by the server when billing exists.
  *
  * Two columns in one wide card, so the whole page fits without scrolling.
  */
@@ -20,23 +21,43 @@ export function ProfilePage() {
   const notify = useStore((s) => s.notify);
 
   const [name, setName] = useState(account.displayName ?? '');
-  const [savingName, setSavingName] = useState(false);
+  const [email, setEmail] = useState(account.email);
+  const [saving, setSaving] = useState(false);
   const [password, setPasswordValue] = useState('');
   const [confirm, setConfirm] = useState('');
   const [savingPassword, setSavingPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  async function saveName(e: FormEvent) {
+  const nameChanged = name.trim() !== (account.displayName ?? '');
+  const emailChanged = email.trim().toLowerCase() !== account.email.toLowerCase();
+
+  async function saveProfile(e: FormEvent) {
     e.preventDefault();
-    setSavingName(true);
-    const err = await updateDisplayName(account.id, name);
-    setSavingName(false);
-    if (err) setError(err);
-    else {
-      setError(null);
+    setSaving(true);
+    setError(null);
+    if (nameChanged) {
+      const err = await updateDisplayName(account.id, name);
+      if (err) {
+        setError(err);
+        setSaving(false);
+        return;
+      }
       setAccount({ ...account, displayName: name.trim() || null });
-      notify('Name saved.');
     }
+    if (emailChanged) {
+      const err = await changeEmail(email);
+      if (err) setError(err);
+      else {
+        // The address only changes once the link is followed; until then the
+        // field goes back to the address that still works.
+        setEmail(account.email);
+        notify(`Confirmation sent — follow the links in both inboxes to switch to ${email.trim()}.`);
+      }
+    } else if (nameChanged) {
+      notify('Saved.');
+    }
+    setSaving(false);
   }
 
   async function savePassword(e: FormEvent) {
@@ -70,28 +91,22 @@ export function ProfilePage() {
       </header>
 
       <div className="account-grid">
-        <form className="auth-form" onSubmit={(e) => void saveName(e)}>
+        <form className="auth-form" onSubmit={(e) => void saveProfile(e)}>
           <h3>Profile</h3>
           <label className="auth-field">
             <span>Name</span>
             <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
           </label>
-          <div className="account-facts">
-            <div className="auth-field">
-              <span>Email</span>
-              <div className="auth-readonly">{account.email}</div>
-            </div>
-            <div className="auth-field">
-              <span>Plan</span>
-              <div className="auth-readonly">{account.plan === 'free' ? 'Free' : account.plan}</div>
-            </div>
+          <label className="auth-field">
+            <span>Email</span>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+          </label>
+          <div className="account-plan">
+            <span>Plan</span>
+            <b>{account.plan === 'free' ? 'Free' : account.plan}</b>
           </div>
-          <Button
-            variant="secondary"
-            type="submit"
-            disabled={savingName || name.trim() === (account.displayName ?? '')}
-          >
-            {savingName ? 'Saving…' : 'Save name'}
+          <Button variant="secondary" type="submit" disabled={saving || !(nameChanged || emailChanged)}>
+            {saving ? 'Saving…' : 'Save changes'}
           </Button>
         </form>
 
@@ -128,6 +143,15 @@ export function ProfilePage() {
           {error}
         </p>
       )}
+
+      <footer className="account-foot">
+        <span>Deleting your account removes your schedules for good.</span>
+        <Button variant="ghost" size="sm" onClick={() => setDeleting(true)}>
+          Delete account
+        </Button>
+      </footer>
+
+      {deleting && <DeleteAccountModal onClose={() => setDeleting(false)} />}
     </GlassPage>
   );
 }

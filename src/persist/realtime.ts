@@ -44,9 +44,12 @@ export function subscribeProject(id: string, onChange: (change: RemoteChange) =>
 export function subscribeProjects(onChange: () => void): () => void {
   if (!isShared) return () => {};
 
+  // Schedules changing, and access changing: something shared with you appears
+  // (or is taken away) without a refresh.
   const channel = supabase()
     .channel('projects:list')
     .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, () => onChange())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'project_members' }, () => onChange())
     .subscribe();
 
   return () => {

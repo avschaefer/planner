@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { ProjectDoc, ProjectSummary } from '../engine/types';
+import type { ProjectDoc, ProjectRole, ProjectSummary } from '../engine/types';
 import type { ScheduleRepo } from './repo';
 
 export { lockIsFree, LOCK_STALE_MS } from './lock';
@@ -118,20 +118,46 @@ function repoError(error: { message: string; code?: string }): RepoError {
   return e;
 }
 
+/**
+ * The signed-in user's id, from the stored session (no network). Membership
+ * rows are visible to every member of a schedule, so any question about *my*
+ * role has to say whose row it wants.
+ */
+async function myId(): Promise<string | null> {
+  const { data } = await supabase().auth.getSession();
+  return data.session?.user.id ?? null;
+}
+
 export function createSupabaseRepo(clientId: () => string): ScheduleRepo {
   return {
     async list(): Promise<ProjectSummary[]> {
-      const { data, error } = await supabase()
-        .from(TABLE)
-        .select('id, name, updated_at, task_count')
-        .order('updated_at', { ascending: false });
-      if (error) throw repoError(error);
-      return (data ?? []).map((row) => ({
+      const me = await myId();
+      const [projects, roles] = await Promise.all([
+        supabase()
+          .from(TABLE)
+          .select('id, name, updated_at, task_count')
+          .order('updated_at', { ascending: false }),
+        supabase().from('project_members').select('project_id, role').eq('user_id', me ?? ''),
+      ]);
+      if (projects.error) throw repoError(projects.error);
+      const roleOf = new Map((roles.data ?? []).map((m) => [m.project_id as string, m.role as ProjectRole]));
+      return (projects.data ?? []).map((row) => ({
         id: row.id as string,
         name: row.name as string,
         updatedAt: row.updated_at as string,
         taskCount: (row.task_count as number) ?? 0,
+        role: roleOf.get(row.id as string),
       }));
+    },
+
+    async roleOf(id) {
+      const { data } = await supabase()
+        .from('project_members')
+        .select('role')
+        .eq('project_id', id)
+        .eq('user_id', (await myId()) ?? '')
+        .maybeSingle();
+      return (data?.role as ProjectRole | undefined) ?? null;
     },
 
     async load(id) {

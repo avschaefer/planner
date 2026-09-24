@@ -92,12 +92,67 @@ try {
   check('other user receives no live updates', heard.B === 0, 'events ' + heard.B);
   await A.removeAllChannels(); await B.removeAllChannels();
 
+  // ---- sharing ----
+  r = await B.rpc('share_project', { p_id: pid, p_email: emails[0], p_role: 'editor' });
+  check('a non-member cannot share', !!r.error, r.error?.message);
+  r = await A.rpc('share_project', { p_id: pid, p_email: 'nobody-' + stamp + '@example.com', p_role: 'viewer' });
+  check('sharing with an unknown email says so', r.data?.ok === false && r.data?.reason === 'not_found', JSON.stringify(r.data));
+  r = await A.rpc('share_project', { p_id: pid, p_email: emails[0], p_role: 'viewer' });
+  check('sharing with yourself is refused', r.data?.ok === false && r.data?.reason === 'self', JSON.stringify(r.data));
+  r = await A.rpc('share_project', { p_id: pid, p_email: emails[1].toUpperCase(), p_role: 'viewer' });
+  check('owner shares as viewer (email case-insensitive)', r.data?.ok === true, JSON.stringify(r.data));
+  r = await B.from('projects').select('name').eq('id', pid);
+  check('viewer can now read it', r.data?.length === 1, JSON.stringify(r.data));
+  r = await B.rpc('project_people', { p_id: pid });
+  check('viewer sees who has access', r.data?.length === 2 && r.data[0].role === 'owner', JSON.stringify(r.data?.map((x) => x.role)));
+  r = await save(B, 'b1', 'Viewer edit');
+  check('viewer cannot save', !!r.error && r.error.code === '42501', r.error?.message);
+  r = await B.rpc('claim_editor', { p_id: pid, p_client_id: 'b1', p_force: true });
+  check('viewer cannot take the editor lock', !!r.error && r.error.code === '42501', JSON.stringify(r.data ?? r.error?.message));
+  r = await B.rpc('set_member_role', { p_id: pid, p_user: ids[1], p_role: 'editor' });
+  check('viewer cannot promote themselves', !!r.error, r.error?.message);
+  r = await A.rpc('set_member_role', { p_id: pid, p_user: ids[1], p_role: 'editor' });
+  check('owner promotes viewer to editor', !r.error, r.error?.message);
+  r = await A.rpc('claim_editor', { p_id: pid, p_client_id: 'a3', p_force: true });
+  await B.rpc('claim_editor', { p_id: pid, p_client_id: 'b1', p_force: true });
+  r = await save(B, 'b1', 'Edited by collaborator');
+  check('editor can save', !r.error, r.error?.message);
+  r = await A.from('projects').select('name').eq('id', pid).single();
+  check('owner sees the editor\'s change', r.data?.name === 'Edited by collaborator', r.data?.name);
+  r = await B.from('projects').delete().eq('id', pid).select();
+  check('editor cannot delete the schedule', (r.data ?? []).length === 0, r.error?.message);
+  r = await B.rpc('remove_member', { p_id: pid, p_user: ids[0] });
+  r = await A.from('project_members').select('user_id').eq('project_id', pid);
+  check('editor cannot remove the owner', r.data?.some((x) => x.user_id === ids[0]), JSON.stringify(r.data));
+  r = await A.rpc('remove_member', { p_id: pid, p_user: ids[0] });
+  r = await A.from('project_members').select('user_id').eq('project_id', pid);
+  check('the owner cannot be removed even by themselves', r.data?.some((x) => x.user_id === ids[0]), JSON.stringify(r.data));
+  r = await B.rpc('remove_member', { p_id: pid, p_user: ids[1] });
+  check('a collaborator can leave', !r.error, r.error?.message);
+  r = await B.from('projects').select('id').eq('id', pid);
+  check('and then sees nothing', r.data?.length === 0, JSON.stringify(r.data));
+  await A.rpc('share_project', { p_id: pid, p_email: emails[1], p_role: 'editor' });
+  r = await A.rpc('remove_member', { p_id: pid, p_user: ids[1] });
+  r = await B.from('projects').select('id').eq('id', pid);
+  check('owner can remove a collaborator', r.data?.length === 0, JSON.stringify(r.data));
+
+  // ---- deleting an account ----
+  await A.rpc('share_project', { p_id: pid, p_email: emails[1], p_role: 'editor' });
+  const del = await B.rpc('delete_my_account');
+  check('a user can delete their own account', !del.error, del.error?.message);
+  const gone = await admin.auth.admin.getUserById(ids[1]);
+  check('the account is gone', !gone.data?.user, JSON.stringify(gone.data?.user?.id));
+  r = await A.from('projects').select('id').eq('id', pid);
+  check('the other person\'s schedule is untouched', r.data?.length === 1, JSON.stringify(r.data));
+  const anonDel = await anon.rpc('delete_my_account');
+  check('signed out cannot call delete_my_account', !!anonDel.error, anonDel.error?.message);
+
   r = await A.from('projects').delete().eq('id', pid).select();
   check('owner can delete', r.data?.length === 1, r.error?.message);
 } catch (e) {
   check('script', false, String(e));
 } finally {
-  for (const id of ids) await admin.auth.admin.deleteUser(id);
+  for (const id of ids) await admin.auth.admin.deleteUser(id).catch(() => {});
   const left = await admin.from('profiles').select('id').in('id', ids);
   check('test users and their data cleaned up', (left.data ?? []).length === 0);
   for (const [s, n, d] of results) console.log(s, n, d ? '— ' + d : '');

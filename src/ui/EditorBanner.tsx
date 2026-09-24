@@ -9,10 +9,22 @@ import { Button } from './Button';
 export function EditorBanner() {
   const shared = useStore((s) => s.shared);
   const readOnly = useStore((s) => s.readOnly);
+  const role = useStore((s) => s.role);
   const view = useStore((s) => s.view);
   const takeOver = useStore((s) => s.takeOverEditing);
 
-  if (!shared || !readOnly || view !== 'schedule') return null;
+  if (!shared || view !== 'schedule') return null;
+
+  // Shared with you as a viewer: nothing to take over, and nothing to fix.
+  if (role === 'viewer') {
+    return (
+      <div className="editing-banner">
+        <span className="dot view" />
+        <span>View only · shared with you, updating live</span>
+      </div>
+    );
+  }
+  if (!readOnly) return null;
 
   return (
     <div className="editing-banner">

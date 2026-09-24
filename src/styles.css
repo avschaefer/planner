@@ -127,6 +127,9 @@ button:disabled { cursor: not-allowed; }
 .btn-ghost { background: transparent; color: var(--dim); }
 .btn-ghost:hover:not(:disabled) { background: var(--sunken); color: var(--text); }
 
+.btn-danger { background: var(--danger); color: #fff; box-shadow: 0 1px 2px rgba(26, 25, 23, 0.12); }
+.btn-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 88%, #000); }
+
 .btn.is-active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-line); }
 
 input {
@@ -886,6 +889,8 @@ input {
   animation: editing-pulse 2s ease-in-out infinite;
 }
 .editing-banner .btn { border-radius: 999px; }
+.editing-banner .dot.view { background: var(--faint); animation: none; }
+.editing-banner:has(.dot.view) { padding-right: 14px; }
 
 @keyframes editing-pulse {
   0%, 100% { opacity: 1; }
@@ -907,7 +912,7 @@ input {
 /* ---------- home: colour fields behind frosted glass ---------- */
 
 .home { position: relative; flex: 1; min-height: 0; overflow: hidden; background: var(--bg); }
-.home-scroll { position: relative; z-index: 1; height: 100%; overflow: auto; padding: 32px 24px 48px; }
+.home-scroll { position: relative; z-index: 1; height: 100%; overflow: auto; padding: 20px 24px 32px; }
 
 .home-bg { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
 
@@ -942,12 +947,14 @@ input {
 
 .hero-top {
   text-align: center;
-  font-size: clamp(61px, 12.75vw, 187px);
+  /* Sized by the window's height as well as its width, so a form below it
+     never needs a scroll on a short laptop screen. */
+  font-size: clamp(48px, min(12.75vw, 13vh), 187px);
   letter-spacing: 0.3em;
   /* Balances the trailing tracking so the word centres; the vertical padding
      stops background-clip:text from shaving the glyph edges. */
   padding: 0.08em 0 0.12em 0.3em;
-  margin: 0 auto 20px;
+  margin: 0 auto 12px;
   width: fit-content;
   max-width: 100%;
   background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 10%, rgba(255, 255, 255, 0.3) 95%);
@@ -1006,7 +1013,8 @@ input {
 
 /* ---------- accounts: sign-in, profile, the avatar ---------- */
 
-.glass.narrow { max-width: 420px; }
+.glass.narrow { max-width: 420px; padding: 28px 32px 22px; }
+.glass.narrow .brand { margin-bottom: 20px; }
 .brand-action { margin-left: auto; display: flex; align-items: center; }
 
 .avatar {
@@ -1026,12 +1034,12 @@ input {
 .avatar:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-line); }
 
 .auth-title {
-  margin: 0 0 18px;
+  margin: 0 0 14px;
   font-size: 17px;
   font-weight: 620;
   letter-spacing: -0.015em;
 }
-.auth-form { display: flex; flex-direction: column; gap: 14px; }
+.auth-form { display: flex; flex-direction: column; gap: 12px; }
 .auth-section { margin-top: 26px; padding-top: 20px; border-top: 1px solid rgba(26, 25, 23, 0.08); }
 .auth-section h3 { margin: 0; font-size: 13px; font-weight: 620; }
 
@@ -1099,8 +1107,9 @@ input {
 .account-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; }
 .account-grid > form + form { border-left: 1px solid rgba(26, 25, 23, 0.08); padding-left: 36px; }
 .account-grid h3 { margin: 0; font-size: 13px; font-weight: 620; }
-.account-facts { display: grid; grid-template-columns: 1fr auto; gap: 18px; }
-.account-facts .auth-readonly { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-plan { display: flex; align-items: baseline; gap: 10px; font-size: 13px; }
+.account-plan span { font-size: 10.5px; font-weight: 640; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+.account-plan b { font-weight: 560; color: var(--dim); }
 .account-error { margin-top: 18px; }
 
 @media (max-width: 720px) {
@@ -1126,3 +1135,52 @@ input {
   letter-spacing: -0.012em;
   border-radius: var(--radius-sm);
 }
+
+
+/* ---------- share dialog ---------- */
+
+.share-modal { width: 540px; }
+.share-invite { display: flex; gap: 8px; align-items: center; margin: 8px 0 4px; }
+.share-invite input { flex: 1; min-width: 0; height: 32px; padding: 0 10px; font-size: 13px; border-color: var(--line-strong); box-shadow: none; }
+.share-invite input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+.share-note { margin: 10px 0; font-size: 12.5px; color: var(--faint); }
+
+.role-toggle { flex-wrap: nowrap; gap: 0; flex: none; }
+.role-toggle .btn { border-radius: 0; margin-left: -1px; }
+.role-toggle .btn:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); margin-left: 0; }
+.role-toggle .btn:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.role-toggle .btn.is-active { position: relative; z-index: 1; }
+
+.share-people { list-style: none; margin: 14px 0 0; padding: 0; }
+.share-people li { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line-soft); }
+.share-people .who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.share-people .who b { font-weight: 560; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.share-people .who em { font-style: normal; font-size: 11.5px; color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.share-people .role-fixed { font-size: 12px; color: var(--dim); }
+.share-people .you { font-size: 11px; color: var(--faint); }
+
+.pitem .tag {
+  flex: none;
+  font-size: 11px;
+  font-weight: 560;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 999px;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+
+/* ---------- delete account ---------- */
+
+.delete-modal { width: 460px; }
+.delete-warning { margin: 6px 0 8px; font-size: 13px; font-weight: 560; }
+.delete-list { margin: 0 0 16px; padding-left: 18px; font-size: 13px; color: var(--dim); line-height: 1.7; }
+.delete-list strong { color: var(--danger); font-weight: 560; }
+.delete-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.modal .auth-field input { height: 34px; padding: 0 10px; font-size: 13px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--panel); box-shadow: none; }
+.modal .auth-field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+
+.account-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 22px; padding-top: 16px; border-top: 1px solid rgba(26, 25, 23, 0.08); }
+.account-foot span { font-size: 12px; color: var(--faint); }
+.account-foot .btn { color: var(--danger); }
+.account-foot .btn:hover:not(:disabled) { background: var(--crit-soft); color: var(--danger); }

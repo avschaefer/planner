@@ -107,6 +107,16 @@ export async function setPassword(password: string): Promise<string | null> {
   return error ? friendly(error.message) : null;
 }
 
+/**
+ * Change the sign-in email. Supabase emails a confirmation link (to both the
+ * old and the new address, by default); the address only changes once it is
+ * followed, so nothing is lost by a typo.
+ */
+export async function changeEmail(email: string): Promise<string | null> {
+  const { error } = await supabase().auth.updateUser({ email: email.trim() }, { emailRedirectTo: returnTo() });
+  return error ? friendly(error.message) : null;
+}
+
 export async function updateDisplayName(id: string, name: string): Promise<string | null> {
   const { error } = await supabase()
     .from('profiles')

@@ -7,6 +7,9 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Added
 
+- **Sharing.** A Share button on every schedule: invite another account by email as *Can edit* or *View only*, change or remove anyone's access, see who has it. Shared schedules appear live in the collaborator's list with a tag, and they can leave. Viewers get a "View only" banner and cannot change anything — enforced in the database, not just the interface. [R-068]
+- Account page: change your email (confirmed by link before it takes effect) and delete your account, behind a warning that names what will be lost and a typed-email confirmation. [R-066]
+- `npm run verify:db` now also covers sharing, roles and account deletion (43 checks); `npm run e2e:accounts` walks two accounts through sharing.
 - Rename a schedule in place: click its title in the toolbar. Enter or clicking away saves, Escape cancels; it undoes like any edit. [R-021]
 - **User accounts** on Supabase Auth: sign up, confirm by email once, then sign in with a password and stay signed in on that device. Forgotten passwords reset by email. [R-061]
 - Every schedule belongs to an account; the database enforces who can see and change it (row-level security), with a membership table ready for sharing. [R-065]
@@ -85,6 +88,8 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Fixed
 
+- Sign-up needed a small scroll on short windows. The hero title now also scales with window height, and the form is tighter. [R-061]
+- (Caught before release) A viewer's save failed with a misleading duplicate-key error, and their lock request answered "granted"; both are now refused up front. The interface also briefly mistook a viewer for the owner because a role lookup returned every member's row. [R-068]
 - A link from a summary was saved but ignored — the successor did not move. [R-018]
 - The project list's Create button rendered blank: a disabled-hover rule painted white under white text. It is now the same component as Add activity. [R-052]
 - Summary text "Inside" was unreadable on the thin summary bar.
