@@ -28,7 +28,9 @@ export function App() {
     const timer = setInterval(() => tick((n) => n + 1), 60_000);
     return () => clearInterval(timer);
   }, []);
-  const locked = shared && !!account && !(account.billing && hasAccess(account.billing));
+  // Unknown billing (unreadable, or before migration 0006) never locks: the
+  // database is the real gate, and this screen only explains it.
+  const locked = shared && !!account?.billing && !hasAccess(account.billing);
 
   // Shared builds need an account; local builds (dev, tests) never ask.
   let page;

@@ -472,8 +472,9 @@ export const useStore = create<State>((set, get) => {
       const before = get().account;
       const account = await currentAccount().catch(() => null);
       if (!account) return;
-      const had = before?.billing ? hasAccess(before.billing) : false;
-      const has = account.billing ? hasAccess(account.billing) : false;
+      // Unknown billing counts as access, as in App.tsx.
+      const had = before?.billing ? hasAccess(before.billing) : true;
+      const has = account.billing ? hasAccess(account.billing) : true;
       set({ account });
       if (had && !has && get().doc) {
         // Locked mid-session: stop editing; the lockout screen takes over.

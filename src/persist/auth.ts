@@ -19,8 +19,9 @@ export interface Account {
   displayName: string | null;
   /**
    * Trial and subscription, written only by the Stripe webhook (the database
-   * refuses the browser). Null only if the profile row could not be read,
-   * which the app treats as no access — the database would agree.
+   * refuses the browser). Null when it could not be read — including before
+   * migration 0006 exists. The app then draws no lockout: the database is
+   * the gate, and it lets through exactly who it should either way.
    */
   billing: Billing | null;
 }
@@ -40,16 +41,22 @@ function friendly(message: string): string {
 
 async function loadAccount(user: { id: string; email?: string } | null | undefined): Promise<Account | null> {
   if (!user) return null;
-  const { data } = await supabase()
+  let { data, error } = await supabase()
     .from('profiles')
     .select('display_name, plan, trial_ends_at, subscription_status, current_period_end, cancel_at_period_end, stripe_customer_id')
     .eq('id', user.id)
     .maybeSingle();
+  if (error) {
+    // Billing columns not there yet (code deployed ahead of migration 0006):
+    // keep the name, leave billing unknown.
+    ({ data } = await supabase().from('profiles').select('display_name').eq('id', user.id).maybeSingle());
+    data = data ? { ...data, trial_ends_at: null } : null;
+  }
   return {
     id: user.id,
     email: user.email ?? '',
     displayName: (data?.display_name as string | null) ?? null,
-    billing: data
+    billing: data?.trial_ends_at
       ? {
           trialEndsAt: data.trial_ends_at as string,
           status: (data.subscription_status as string | null) ?? null,

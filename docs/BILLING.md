@@ -270,7 +270,7 @@ stripe test_helpers test_clocks advance <clock_id> --frozen-time <unix time just
 
 ## 8. Operations
 
-- **Ship order:** set the env vars → apply `0006_billing.sql` → deploy, back to back. Migration first, because the running app keeps working against it: every account is in trial and `profiles.plan` still exists. New code on an old schema would select columns that don't exist and draw every account as locked. The migration starts every existing account's 30 days, so apply it when you mean it.
+- **Ship order:** the code can deploy before the migration. With the billing columns missing, the app treats billing as unknown and locks nobody out, and the billing section shows a neutral note. Then: Stripe setup (§6) → env vars (§5) → redeploy, so the functions see the vars → apply `0006_billing.sql`. The migration is the switch: it starts every existing account's 30 days and turns on enforcement, so apply it when you mean it.
 - **Going live:** repeat §6 in live mode; set the live `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` and live price IDs in **Production only**. Preview and Development stay in test mode.
 - **Display prices** are in `src/persist/access.ts` (`PRICES`). Keep them in step with the Stripe prices; the charge always comes from the price ID.
 - **A stuck account:** re-send any recent event for that customer from the Dashboard (Developers → Events → Resend). The handler re-syncs from Stripe's current state, so any event for the customer fixes it.

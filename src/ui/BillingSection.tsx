@@ -124,7 +124,7 @@ export function BillingSection() {
     return (
       <section className="account-billing">
         <h3>Subscription</h3>
-        <p className="auth-note">Could not read your subscription. Reload the page to try again.</p>
+        <p className="auth-note">Subscription details aren't available right now. Reload the page to try again.</p>
       </section>
     );
   }

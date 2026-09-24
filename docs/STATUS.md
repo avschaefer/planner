@@ -7,9 +7,10 @@
 
 ## Now
 
-- [ ] **Ship billing** (owner): Stripe Dashboard setup in test mode (`docs/BILLING.md` §6) → the
-      Vercel env vars (§5) → apply `supabase/migrations/0006_billing.sql` → deploy. The migration
-      starts every existing account's 30-day trial, so run it when you mean it.
+- [ ] **Ship billing** (owner): the code is on `main` and harmless until the migration. Stripe
+      Dashboard setup in test mode (`docs/BILLING.md` §6) → the Vercel env vars (§5) → redeploy →
+      apply `supabase/migrations/0006_billing.sql`. The migration starts every existing account's
+      30-day trial and turns enforcement on, so run it when you mean it.
 - [ ] Walk the billing paths with the Stripe CLI and test clocks (`docs/BILLING.md` §7.3), and run
       `npm run verify:db` against the migrated project.
 - [ ] Go live: repeat the Stripe setup in live mode; live key, webhook secret and price IDs in
