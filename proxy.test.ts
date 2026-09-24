@@ -57,6 +57,12 @@ describe('the passcode gate', () => {
     await expect(response?.json()).resolves.toEqual({ error: 'Locked' });
   });
 
+  it('serves the typeface to the unlock page, and nothing else under that prefix', async () => {
+    expect(passedThrough(await proxy(get('/fonts/outfit-latin.woff2')))).toBe(true);
+    expect((await proxy(get('/fontsX/secret')))?.status).toBe(401);
+    expect((await proxy(get('/assets/fonts/x.woff2')))?.status).toBe(401);
+  });
+
   it('always lets the unlock route through, whatever the matcher says', async () => {
     expect(passedThrough(await proxy(get('/api/unlock')))).toBe(true);
   });

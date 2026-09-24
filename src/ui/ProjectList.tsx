@@ -9,6 +9,9 @@ function Backdrop() {
   return (
     <div className="home-bg" aria-hidden="true">
       <Aurora />
+      {/* The hero wordmark lives on the background, under the glass. The card's
+          own <h1> is the accessible name, so this one is decoration. */}
+      <span className="hero-word">Marga</span>
       <span className="grain" />
     </div>
   );

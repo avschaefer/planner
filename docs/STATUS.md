@@ -65,7 +65,7 @@ hand-off — passed against the real Supabase project (`npm run e2e:stack`).
 | Realtime subscription (R-063) | Built · verified live in the browser |
 | IndexedDB persistence, JSON import/export | Built · reload test |
 
-**Test suites:** 89 unit tests (Vitest) · 21 browser tests (Playwright). Both pass as of
+**Test suites:** 90 unit tests (Vitest) · 21 browser tests (Playwright). Both pass as of
 2026-09-23. The browser suite runs against the IndexedDB fallback, which is deliberate: it
 proves the local path still works and keeps the suite runnable without a network.
 
@@ -99,7 +99,7 @@ Nothing.
 
 ## Decisions log
 
-`docs/EDD.md` §6, D-001 … D-034. The four that shaped the build:
+`docs/EDD.md` §6, D-001 … D-035. The four that shaped the build:
 
 - **D-006** — summary rows are containers and carry no dependencies
 - **D-007** — dragging an activity with predecessors pins it (visible, removable) rather than

@@ -19,14 +19,16 @@ import { COOKIE, readCookie, verifySession } from './api/_session.js';
  * would cost read access, not write access.
  */
 
-/** The one route that must stay open, or there is no way to unlock anything. */
+/** The route that must stay open, or there is no way to unlock anything. */
 const OPEN_PATH = '/api/unlock';
+/** Static, non-sensitive files the unlock page itself needs (its typeface). */
+const OPEN_PREFIX = '/fonts/';
 
 export default async function proxy(request: Request): Promise<Response> {
   const pathname = new URL(request.url).pathname;
   // Checked here as well as in the matcher: if that pattern is ever mis-edited,
   // gating the unlock route would lock the whole deployment out of itself.
-  if (pathname === OPEN_PATH) return next();
+  if (pathname === OPEN_PATH || pathname.startsWith(OPEN_PREFIX)) return next();
 
   const secret = process.env.SESSION_SECRET;
   if (!secret) {
@@ -62,35 +64,67 @@ const UNLOCK_PAGE = `<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Marga</title>
 <style>
+  /* Same family as the home page: a still aurora behind frosted glass, the
+     spaced-capital logotype, and the hairline hero word. Static on purpose —
+     this page is seen for a few seconds, and needs no script to look right. */
+  @font-face {
+    font-family: 'Outfit Variable'; font-style: normal; font-display: swap; font-weight: 100 900;
+    src: url(/fonts/outfit-latin.woff2) format('woff2-variations');
+  }
   :root {
-    --bg: #fcfcfb; --panel: #fff; --line: #eae8e3; --line-strong: #d9d6cf;
-    --text: #1a1917; --dim: #6b6862; --accent: #4f5bd5; --danger: #c0392f;
+    --bg: #fcfcfb; --text: #1a1917; --dim: #6b6862; --faint: #9c988f;
+    --accent: #4f5bd5; --danger: #c0392f;
     --font: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --display: 'Outfit Variable', var(--font);
   }
   * { box-sizing: border-box; }
+  html, body { height: 100%; }
   body {
-    margin: 0; min-height: 100vh; display: grid; place-items: center;
+    margin: 0; display: grid; place-items: center; overflow: hidden;
     background: var(--bg); color: var(--text); font: 13px/1.45 var(--font);
     -webkit-font-smoothing: antialiased;
   }
-  form {
-    width: 320px; padding: 28px; background: var(--panel);
-    border: 1px solid var(--line); border-radius: 6px;
-    box-shadow: 0 1px 2px rgba(26,25,23,.06), 0 10px 30px -6px rgba(26,25,23,.14);
+  .bg { position: fixed; inset: -10%; filter: blur(40px) saturate(115%); z-index: 0;
+    background:
+      radial-gradient(38% 42% at 18% 22%, rgba(79,91,213,.42), transparent 70%),
+      radial-gradient(34% 40% at 82% 30%, rgba(234,162,194,.5), transparent 70%),
+      radial-gradient(40% 38% at 70% 82%, rgba(182,164,240,.5), transparent 70%),
+      radial-gradient(36% 34% at 24% 78%, rgba(246,196,162,.5), transparent 70%),
+      linear-gradient(160deg, transparent 30%, rgba(168,192,244,.35) 50%, transparent 70%);
   }
-  h1 { margin: 0 0 4px; font-size: 19px; font-weight: 640; letter-spacing: -.02em; }
+  .hero {
+    position: fixed; left: 50%; bottom: 3.5vh; transform: translateX(-50%); z-index: 0;
+    font-family: var(--display); font-weight: 150; font-size: clamp(88px, 17vw, 300px);
+    line-height: .9; letter-spacing: .3em; padding-left: .3em; text-transform: uppercase;
+    white-space: nowrap; user-select: none; pointer-events: none; opacity: .8;
+    background: linear-gradient(180deg, rgba(255,255,255,.92) 10%, rgba(255,255,255,.22) 95%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  form {
+    position: relative; z-index: 1; width: 340px; padding: 32px 30px 26px;
+    border-radius: 18px; background: rgba(255,255,255,.52);
+    -webkit-backdrop-filter: blur(28px) saturate(160%); backdrop-filter: blur(28px) saturate(160%);
+    border: 1px solid rgba(255,255,255,.72);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.85), 0 1px 2px rgba(26,25,23,.04),
+                0 28px 80px -28px rgba(26,25,23,.24);
+  }
+  .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .brand svg { color: var(--accent); flex: none; }
+  h1 { margin: 0 -.38em 0 0; font-family: var(--display); font-size: 17px; font-weight: 520;
+       letter-spacing: .38em; text-transform: uppercase; }
   p { margin: 0 0 20px; color: var(--dim); }
   label { display: block; font-size: 10.5px; font-weight: 640; letter-spacing: .06em;
-          text-transform: uppercase; color: #9c988f; margin-bottom: 6px; }
+          text-transform: uppercase; color: var(--faint); margin-bottom: 6px; }
   input {
-    width: 100%; height: 36px; padding: 0 10px; font: inherit; color: var(--text);
-    background: var(--bg); border: 1px solid var(--line-strong); border-radius: 4px; outline: none;
+    width: 100%; height: 36px; padding: 0 12px; font: inherit; color: var(--text);
+    background: rgba(255,255,255,.72); border: 1px solid rgba(26,25,23,.12);
+    border-radius: 6px; outline: none;
   }
-  input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,91,213,.05); }
+  input:focus { background: #fff; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,91,213,.12); }
   button {
-    width: 100%; height: 36px; margin-top: 12px; font: inherit; font-weight: 560;
-    color: #fff; background: var(--accent); border: 1px solid var(--accent);
-    border-radius: 4px; cursor: pointer;
+    width: 100%; height: 36px; margin-top: 12px; font: 560 13px/1 var(--font);
+    color: #fff; background: var(--accent); border: 0; border-radius: 6px; cursor: pointer;
+    box-shadow: 0 1px 2px rgba(26,25,23,.12);
   }
   button:hover { background: #3f4ac2; }
   button:disabled { opacity: .5; cursor: default; }
@@ -98,8 +132,17 @@ const UNLOCK_PAGE = `<!doctype html>
 </style>
 </head>
 <body>
+  <div class="bg" aria-hidden="true"></div>
+  <div class="hero" aria-hidden="true">Marga</div>
   <form id="f">
-    <h1>Marga</h1>
+    <div class="brand">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+        <rect x="2" y="4.5" width="11" height="3.6" rx="1.8" fill="currentColor" />
+        <rect x="6" y="9.2" width="14" height="3.6" rx="1.8" fill="currentColor" opacity="0.62" />
+        <rect x="4" y="13.9" width="9" height="3.6" rx="1.8" fill="currentColor" opacity="0.34" />
+      </svg>
+      <h1>Marga</h1>
+    </div>
     <p>Enter the shared passcode to continue.</p>
     <label for="p">Passcode</label>
     <input id="p" type="password" autocomplete="current-password" autofocus />

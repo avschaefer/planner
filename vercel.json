@@ -5,6 +5,6 @@
   "outputDirectory": "dist",
   "proxy": {
     "entrypoint": "proxy.ts",
-    "matcher": ["/((?!api/unlock).*)"]
+    "matcher": ["/((?!api/unlock|fonts/).*)"]
   }
 }

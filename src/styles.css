@@ -1,3 +1,23 @@
+/* Display face for the wordmark: Outfit (SIL OFL, public/fonts/OUTFIT-LICENSE.txt).
+   Served from /fonts/ so the passcode page, which runs before the app bundle is
+   available, uses the same file. The gate lets /fonts/ through. */
+@font-face {
+  font-family: 'Outfit Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url(/fonts/outfit-latin-ext.woff2) format('woff2-variations');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Outfit Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url(/fonts/outfit-latin.woff2) format('woff2-variations');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
 /* Design tokens. The whole palette lives here. Light only — by decision, there
    is no dark theme and no prefers-color-scheme block. */
 :root {
@@ -45,6 +65,7 @@
   --shadow-pop: 0 1px 2px rgba(26, 25, 23, 0.06), 0 10px 30px -6px rgba(26, 25, 23, 0.18);
   --font: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+  --display: 'Outfit Variable', var(--font);
 }
 
 * { box-sizing: border-box; }
@@ -207,13 +228,21 @@ input {
 
 .projects { width: 100%; }
 
-.brand { display: flex; align-items: center; gap: 11px; margin-bottom: 32px; }
+/* The logotype: small spaced capitals, the way a studio signs its work. The
+   presence comes from the hero wordmark on the background, not from size here. */
+.brand { display: flex; align-items: center; gap: 12px; margin-bottom: 30px; }
 .brand .mark { display: grid; place-items: center; color: var(--accent); flex: none; }
 .brand h1 {
-  font-size: 26px;
-  font-weight: 640;
-  letter-spacing: -0.03em;
   margin: 0;
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 520;
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+  /* Tracking adds space after the last letter too; take it back so the word
+     sits true against the mark and the card edge. */
+  margin-right: -0.38em;
+  color: var(--text);
 }
 
 .projects .new { display: flex; gap: 8px; margin-bottom: 14px; }
@@ -890,6 +919,31 @@ input {
   width: 112%;
   height: 112%;
   filter: blur(26px) saturate(115%);
+}
+
+/* The hero wordmark: huge, hairline, lit from above and fading into the aurora.
+   Anchored low so the card never covers it at rest; when a long list grows over
+   it, the glass blurs it — which is the point of the glass. */
+.hero-word {
+  position: absolute;
+  left: 50%;
+  bottom: 3.5vh;
+  transform: translateX(-50%);
+  font-family: var(--display);
+  font-weight: 150;
+  font-size: clamp(88px, 17vw, 300px);
+  line-height: 0.9;
+  letter-spacing: 0.3em;
+  padding-left: 0.3em; /* balances the trailing tracking so the word centres */
+  text-transform: uppercase;
+  white-space: nowrap;
+  user-select: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 10%, rgba(255, 255, 255, 0.22) 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.35)) drop-shadow(0 12px 40px rgba(79, 91, 213, 0.1));
+  opacity: 0.8;
 }
 
 /* Film grain keeps the gradients from banding and gives the glass a surface. */
