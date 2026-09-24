@@ -9,9 +9,10 @@ function Backdrop() {
   return (
     <div className="home-bg" aria-hidden="true">
       <Aurora />
-      {/* The hero wordmark lives on the background, under the glass. The card's
-          own <h1> is the accessible name, so this one is decoration. */}
-      <span className="hero-word">Marga</span>
+      {/* Wide screens: the hero title runs up the empty left margin, where the
+          card can never cover it. The card's <h1> is the accessible name, so
+          this is decoration. */}
+      <span className="hero-word hero-side">Marga</span>
       <span className="grain" />
     </div>
   );
@@ -70,6 +71,10 @@ export function ProjectList() {
     <div className="home">
       <Backdrop />
       <div className="home-scroll">
+        {/* Narrow screens: the margin is too thin, so the title sits above the card. */}
+        <div className="hero-word hero-top" aria-hidden="true">
+          Marga
+        </div>
         <div className="projects glass">
           <header className="brand">
             <span className="mark" aria-hidden="true">

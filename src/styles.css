@@ -921,29 +921,55 @@ input {
   filter: blur(26px) saturate(115%);
 }
 
-/* The hero wordmark: huge, hairline, lit from above and fading into the aurora.
-   Anchored low so the card never covers it at rest; when a long list grows over
-   it, the glass blurs it — which is the point of the glass. */
+/* The hero title: hairline capitals, lit from one side and fading into the
+   aurora. It never sits under the card. On wide screens it runs up the empty
+   left margin like a book spine; where that margin gets thin it moves above
+   the card instead. Exactly one of the two is shown at any width. */
 .hero-word {
-  position: absolute;
-  left: 50%;
-  bottom: 3.5vh;
-  transform: translateX(-50%);
   font-family: var(--display);
   font-weight: 150;
-  font-size: clamp(88px, 17vw, 300px);
   line-height: 0.9;
-  letter-spacing: 0.3em;
-  padding-left: 0.3em; /* balances the trailing tracking so the word centres */
   text-transform: uppercase;
   white-space: nowrap;
   user-select: none;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 10%, rgba(255, 255, 255, 0.22) 95%);
+  pointer-events: none;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.35)) drop-shadow(0 12px 40px rgba(79, 91, 213, 0.1));
-  opacity: 0.8;
+  opacity: 0.85;
+}
+
+.hero-side {
+  position: absolute;
+  top: 50%;
+  /* Centred in the left margin: the card is 720px wide and centred. */
+  left: calc((100vw - 720px) / 4);
+  writing-mode: vertical-rl;
+  transform: translate(-50%, -50%) rotate(180deg);
+  /* Sized by height, so the whole word always fits the window. */
+  font-size: min(15vh, 150px);
+  letter-spacing: 0.3em;
+  padding-top: 0.3em; /* balances the trailing tracking so the word centres */
+  background-image: linear-gradient(90deg, rgba(255, 255, 255, 0.95) 5%, rgba(255, 255, 255, 0.25) 95%);
+}
+
+.hero-top {
+  display: none;
+  text-align: center;
+  font-size: clamp(56px, 12vw, 120px);
+  letter-spacing: 0.26em;
+  padding-left: 0.26em;
+  margin: 0 auto 28px;
+  width: fit-content;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 10%, rgba(255, 255, 255, 0.3) 95%);
+}
+
+/* Below this the left margin is too thin for the spine: move it above. */
+@media (max-width: 1080px) {
+  .hero-side { display: none; }
+  .hero-top { display: block; }
+  .home-scroll { padding-top: 40px; }
 }
 
 /* Film grain keeps the gradients from banding and gives the glass a surface. */
