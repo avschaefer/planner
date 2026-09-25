@@ -136,8 +136,9 @@ Full spec, state model and test runbook: [`BILLING.md`](BILLING.md).
 | R-072 | Lockout after the trial | With no live subscription after the trial, the app is locked: no schedule can be read, written, shared or watched live, enforced in the database whatever the client does (a direct API write gets 402). The account page and sign-out stay reachable. Nothing is deleted; subscribing restores access immediately. A failed payment keeps access while Stripe retries (`past_due`); access ends when the subscription does. Access is per caller: a paying collaborator keeps a schedule whose owner lapsed | P1 |
 | R-073 | Stripe is the source of truth | Subscription state changes only through a signature-verified webhook, never from a redirect or client input. Redelivered or out-of-order events leave the same result. One Stripe customer per account | P1 |
 | R-074 | Billing on the account page | Shows trial with days left, active with plan and renewal (or cancel) date, past-due warning, or expired; upgrade buttons for annual and monthly; "Manage subscription" for anyone who has been a customer. After Checkout, waits for the webhook before showing the subscription | P2 |
+| R-075 | Terms, privacy and refund policy | One public page (`/legal.html`), readable signed out and without JavaScript: Terms of Service, Privacy Policy, Refund & Cancellation Policy. Linked under every page outside the chart, at sign-up ("By creating an account you agree…") and beside the subscribe buttons with the auto-renewal terms. The Customer Portal links to it | P1 |
 
-**Totals: 55 requirements — P0: 18 · P1: 27 · P2: 10**
+**Totals: 56 requirements — P0: 18 · P1: 28 · P2: 10**
 
 ---
 

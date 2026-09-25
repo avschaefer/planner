@@ -159,6 +159,13 @@ export function AuthScreen({ recovery = false }: { recovery?: boolean }) {
             </p>
           )}
 
+          {mode === 'signup' && (
+            <p className="auth-fine">
+              By creating an account you agree to the <a href="/legal.html#terms">Terms</a> and{' '}
+              <a href="/legal.html#privacy">Privacy Policy</a>.
+            </p>
+          )}
+
           <Button variant="primary" type="submit" disabled={busy} className="auth-submit">
             {busy
               ? 'One moment…'

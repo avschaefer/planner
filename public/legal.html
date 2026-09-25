@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Terms, Privacy &amp; Refunds — Marga</title>
+    <meta name="description" content="Marga's Terms of Service, Privacy Policy and Refund &amp; Cancellation Policy." />
+    <!--
+      Static on purpose: readable signed out and without JavaScript, which is
+      what Stripe and the card networks expect of a merchant's policy pages.
+      The facts here must match the product: docs/BILLING.md for billing,
+      migrations for what deletion removes. Update "Effective" when it changes.
+    -->
+    <style>
+      @font-face {
+        font-family: 'Outfit Variable';
+        font-style: normal;
+        font-display: swap;
+        font-weight: 100 900;
+        src: url(/fonts/outfit-latin.woff2) format('woff2-variations');
+      }
+      :root {
+        --bg: #fcfcfb;
+        --panel: #ffffff;
+        --line: #eae8e3;
+        --text: #1a1917;
+        --dim: #6b6862;
+        --faint: #9c988f;
+        --accent: #4f5bd5;
+        --accent-soft: rgba(79, 91, 213, 0.08);
+        --font: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        --display: 'Outfit Variable', var(--font);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 15px/1.65 var(--font);
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap { max-width: 760px; margin: 0 auto; padding: 32px 20px 80px; }
+      .top { display: flex; align-items: center; gap: 10px; margin-bottom: 36px; }
+      .top a { display: flex; align-items: center; gap: 8px; color: var(--accent); text-decoration: none; }
+      .top span { font: 600 18px/1 var(--display); letter-spacing: -0.01em; color: var(--text); }
+      .back { margin-left: auto; font-size: 13.5px; }
+      h1 { font: 620 30px/1.2 var(--display); letter-spacing: -0.02em; margin: 0 0 6px; }
+      .meta { color: var(--dim); font-size: 13.5px; margin: 0 0 22px; }
+      nav.toc {
+        display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 40px; padding: 0; list-style: none;
+      }
+      nav.toc a {
+        display: inline-block; padding: 6px 12px; border-radius: 999px; font-size: 13.5px;
+        background: var(--accent-soft); color: var(--accent); text-decoration: none;
+      }
+      section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 28px 28px 20px; margin-bottom: 28px; }
+      h2 { font: 620 22px/1.25 var(--display); letter-spacing: -0.015em; margin: 0 0 4px; scroll-margin-top: 16px; }
+      h3 { font-size: 15px; font-weight: 640; margin: 26px 0 6px; }
+      p, ul { margin: 0 0 12px; }
+      ul { padding-left: 22px; }
+      li { margin-bottom: 4px; }
+      a { color: var(--accent); }
+      .summary { color: var(--dim); font-size: 14px; border-left: 3px solid var(--accent); padding: 2px 0 2px 12px; margin: 12px 0 8px; }
+      .caps { text-transform: uppercase; font-size: 13.5px; letter-spacing: 0.01em; }
+      table { border-collapse: collapse; width: 100%; font-size: 14px; margin: 0 0 12px; }
+      th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+      th { font-weight: 640; color: var(--dim); font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.05em; }
+      footer { color: var(--faint); font-size: 13px; text-align: center; }
+      @media (max-width: 560px) {
+        section { padding: 22px 18px 14px; }
+        h1 { font-size: 25px; }
+        table, thead, tbody, tr, th, td { display: block; }
+        thead { display: none; }
+        td { border: 0; padding: 2px 0; }
+        td:first-child { font-weight: 640; }
+        tr { border-bottom: 1px solid var(--line); padding: 8px 0; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="top">
+        <a href="/" aria-label="Marga home">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+            <rect x="2" y="4.5" width="11" height="3.6" rx="1.8" fill="currentColor" />
+            <rect x="6" y="9.2" width="14" height="3.6" rx="1.8" fill="currentColor" opacity="0.62" />
+            <rect x="4" y="13.9" width="9" height="3.6" rx="1.8" fill="currentColor" opacity="0.34" />
+          </svg>
+          <span>Marga</span>
+        </a>
+        <a class="back" href="/">Back to Marga →</a>
+      </div>
+
+      <h1>Terms, Privacy &amp; Refunds</h1>
+      <p class="meta">Effective September 25, 2026 · Questions: <a href="mailto:avdevdesk@gmail.com">avdevdesk@gmail.com</a></p>
+
+      <nav class="toc" aria-label="On this page">
+        <a href="#terms">Terms of Service</a>
+        <a href="#privacy">Privacy Policy</a>
+        <a href="#refunds">Refunds &amp; Cancellation</a>
+      </nav>
+
+      <!-- ─────────────────────────── TERMS ─────────────────────────── -->
+      <section>
+        <h2 id="terms">Terms of Service</h2>
+        <p class="summary">
+          The short version: Marga is a scheduling tool run by one person. Your first 30 days are free, then it's
+          $12/year or $2/month, renewing until you cancel. Your schedules are yours. Check important schedule results
+          yourself before relying on them.
+        </p>
+
+        <h3>1. Who we are and this agreement</h3>
+        <p>
+          Marga (the "Service"), at marga-planner.vercel.app, is operated by Andrew Schaefer, an individual based in
+          Maryland, USA ("we", "us"). These Terms are a contract between you and us. By creating an account or using
+          the Service you agree to them and to the Privacy Policy and Refund &amp; Cancellation Policy below. If you
+          don't agree, don't use the Service.
+        </p>
+
+        <h3>2. Eligibility and your account</h3>
+        <ul>
+          <li>You must be at least 18 years old and able to form a binding contract.</li>
+          <li>Give a real email address and keep it current. We use it to confirm your account, reset your password
+            and tell you about your subscription.</li>
+          <li>Keep your password secret. You're responsible for what happens under your account. Tell us promptly at
+            the contact address if you think someone else has used it.</li>
+          <li>One person per account. Don't share your sign-in; share schedules with the Share button instead.</li>
+        </ul>
+
+        <h3>3. Free trial</h3>
+        <p>
+          Each new account gets full access free for 30 days from sign-up. No card is needed. One trial per person;
+          we may end trials created to get around this.
+        </p>
+
+        <h3>4. Subscriptions, renewal and payment</h3>
+        <ul>
+          <li><strong>Prices:</strong> $12.00 USD per year or $2.00 USD per month, plus any tax that applies. The price
+            and billing period are shown before you pay.</li>
+          <li><strong>Automatic renewal:</strong> your subscription renews automatically at the end of each period, at
+            the then-current price, and charges your payment method until you cancel.</li>
+          <li><strong>Subscribing during your trial:</strong> your remaining trial days carry over; your first charge
+            is on the day your trial would have ended. (If fewer than 48 hours remain, you're charged when you
+            subscribe.)</li>
+          <li><strong>Cancelling:</strong> any time, from Account → Manage subscription. Cancellation takes effect at
+            the end of the period you've paid for; you keep access until then and aren't charged again.</li>
+          <li><strong>Payments</strong> are processed by Stripe. We never see or store your full card number. You
+            authorise us, through Stripe, to charge your payment method for each renewal.</li>
+          <li><strong>Failed payments:</strong> if a renewal fails, Stripe will retry for up to about two weeks and
+            you keep access meanwhile. If it still can't be collected, the subscription ends.</li>
+          <li><strong>Price changes:</strong> we'll email you at least 30 days before a price change takes effect. It
+            applies from your next renewal, and you can cancel before then.</li>
+        </ul>
+
+        <h3>5. When you don't have a subscription</h3>
+        <p>
+          After your trial, without an active subscription, your schedules are locked: you can't open, edit or share
+          them until you subscribe. Your account page, sign-out and account deletion stay available. We don't delete
+          your data because a trial or subscription ended. If we ever change that, we'll email you at least 30 days
+          beforehand.
+        </p>
+
+        <h3>6. Your content</h3>
+        <ul>
+          <li>You own the schedules and other content you put into Marga ("Your Content").</li>
+          <li>You give us a limited licence to store, copy, process and display Your Content only to run the Service
+            for you and for the people you share it with, and to keep it backed up and secure.</li>
+          <li>When you share a schedule, the people you invite can see it (and, if you let them, change it). They'll
+            also see your name and email. You're responsible for who you share with.</li>
+          <li>You're responsible for Your Content and must have the right to use it. Keep your own copies of
+            anything important; Marga lets you export schedules as JSON and images.</li>
+        </ul>
+
+        <h3>7. Acceptable use</h3>
+        <p>Don't:</p>
+        <ul>
+          <li>use the Service for anything unlawful, or to store or share content you don't have the rights to;</li>
+          <li>try to get around access controls, billing or trial limits, or access other people's data;</li>
+          <li>probe, scan, overload or disrupt the Service, or scrape it by automated means;</li>
+          <li>resell, sublicense or offer the Service to others as your own.</li>
+        </ul>
+
+        <h3>8. Schedule results</h3>
+        <p>
+          Marga calculates dates, float and critical paths from what you enter. Those results are only as good as the
+          inputs, and software can be wrong. Review them before relying on them for commitments, contracts, safety or
+          money decisions. Using the results is your decision and your responsibility.
+        </p>
+
+        <h3>9. Changes to the Service</h3>
+        <p>
+          We may change, add or remove features. If we stop offering the Service entirely, we'll give at least 30
+          days' notice by email, give you a way to export your schedules, and refund the unused part of any prepaid
+          subscription.
+        </p>
+
+        <h3>10. Suspension and ending this agreement</h3>
+        <p>
+          You can stop using the Service and delete your account at any time from the account page. We may suspend or
+          close accounts that seriously or repeatedly break these Terms, that we must act on by law, or that put the
+          Service or other users at risk. Where reasonable we'll tell you first and let you export your data.
+          Sections 6, 8, 11–14 survive after this agreement ends.
+        </p>
+
+        <h3>11. Disclaimer</h3>
+        <p class="caps">
+          The Service is provided "as is" and "as available". To the fullest extent the law allows, we disclaim all
+          warranties, express or implied, including merchantability, fitness for a particular purpose, accuracy and
+          non-infringement. We don't promise the Service will be uninterrupted, error-free or that data will never be
+          lost.
+        </p>
+
+        <h3>12. Limitation of liability</h3>
+        <p class="caps">
+          To the fullest extent the law allows, we are not liable for any indirect, incidental, special, consequential
+          or punitive damages, or for lost profits, revenue, data or business opportunities, arising out of or related
+          to the Service. Our total liability for all claims related to the Service is limited to the greater of the
+          amount you paid us in the 12 months before the claim arose, or $50.
+        </p>
+        <p>
+          Some places don't allow these exclusions or limits, so some may not apply to you. Nothing in these Terms
+          limits liability that can't be limited by law.
+        </p>
+
+        <h3>13. Indemnity</h3>
+        <p>
+          If a third party makes a claim against us because of Your Content or your breach of these Terms, you'll
+          cover our reasonable losses and costs from that claim, to the extent the law allows.
+        </p>
+
+        <h3>14. Governing law and disputes</h3>
+        <p>
+          These Terms are governed by the laws of the State of Maryland, USA, without regard to its conflict-of-law
+          rules. Please email us first. Most problems can be sorted out quickly. Any dispute that can't be will be
+          decided in the state or federal courts located in Maryland, and you and we agree to their jurisdiction.
+          Either of us may bring a qualifying claim in small-claims court instead. If you're a consumer living
+          outside the US, you keep any protections your local law gives you that can't be waived.
+        </p>
+
+        <h3>15. Changes to these Terms</h3>
+        <p>
+          We may update these Terms. For material changes we'll email you or show a notice in the app at least 14 days
+          before they take effect. Continuing to use the Service after that means you accept the new Terms; if you
+          don't, you can cancel and delete your account.
+        </p>
+
+        <h3>16. Everything else</h3>
+        <p>
+          These Terms, with the policies below, are the whole agreement between us about the Service. If a part is
+          unenforceable, the rest still applies. Not enforcing a part isn't a waiver of it. You can't transfer this
+          agreement without our consent; we may transfer it to someone who takes over the Service, and we'll tell you
+          if we do.
+        </p>
+      </section>
+
+      <!-- ─────────────────────────── PRIVACY ─────────────────────────── -->
+      <section>
+        <h2 id="privacy">Privacy Policy</h2>
+        <p class="summary">
+          We collect what's needed to run your account, store your schedules and take payment. No ads, no analytics
+          trackers. We don't sell your information.
+        </p>
+
+        <h3>What we collect</h3>
+        <table>
+          <thead>
+            <tr><th>Information</th><th>What it is</th><th>Why</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Account</td>
+              <td>Email address, the name you choose, your password (stored only as a secure hash by our auth
+                provider)</td>
+              <td>To create your account, sign you in, and email you about it</td>
+            </tr>
+            <tr>
+              <td>Your Content</td>
+              <td>Schedules, activities, links, and who you've shared each schedule with</td>
+              <td>To provide the Service</td>
+            </tr>
+            <tr>
+              <td>Billing</td>
+              <td>Your Stripe customer ID, plan, subscription status and renewal date. Card details go directly to
+                Stripe; we never receive them</td>
+              <td>To take payment and decide whether your account has access</td>
+            </tr>
+            <tr>
+              <td>Technical</td>
+              <td>IP address, browser type and request times in our hosting and database providers' logs</td>
+              <td>Security, abuse prevention and fixing problems</td>
+            </tr>
+            <tr>
+              <td>On your device</td>
+              <td>Your sign-in session and display preferences, kept in your browser's local storage</td>
+              <td>To keep you signed in and remember your settings. We don't use advertising or tracking cookies</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Who we share it with</h3>
+        <p>We don't sell or rent your personal information, or share it for advertising. We share it only with:</p>
+        <ul>
+          <li><strong>Service providers</strong> who run parts of Marga for us, under their own privacy and security
+            commitments: <a href="https://supabase.com/privacy">Supabase</a> (database, sign-in and account emails),
+            <a href="https://vercel.com/legal/privacy-policy">Vercel</a> (hosting) and
+            <a href="https://stripe.com/privacy">Stripe</a> (payments, receipts and billing emails).</li>
+          <li><strong>People you share with.</strong> Collaborators on a schedule see your name and email, and you see
+            theirs.</li>
+          <li><strong>The law.</strong> We disclose information if required by law or valid legal process, or to
+            protect the rights, safety or security of users, the public or the Service.</li>
+          <li><strong>A successor.</strong> If the Service is transferred, your information goes with it under this
+            policy, and we'll tell you.</li>
+        </ul>
+
+        <h3>How long we keep it</h3>
+        <ul>
+          <li>For as long as your account exists.</li>
+          <li><strong>Deleting your account</strong> (Account → Delete account) permanently removes your profile and
+            sign-in, the schedules you own (collaborators lose access to them), and your access to schedules others
+            shared with you.</li>
+          <li>Stripe keeps payment and invoice records for as long as tax and financial law requires.</li>
+          <li>Provider logs are kept for their normal, limited periods and then deleted.</li>
+        </ul>
+
+        <h3>Your choices and rights</h3>
+        <p>
+          You can see and correct your name and email, export your schedules and delete your account yourself in the
+          app. You can also email us to ask for a copy of your information, correction or deletion; we'll answer
+          within 30 days (45 where state law allows). We won't treat you differently for using these rights.
+        </p>
+        <p>
+          <strong>US state privacy laws</strong> (California, Colorado, Virginia and others): we don't sell or share
+          personal information for targeted advertising, and we don't use sensitive information to infer
+          characteristics about you. You have the rights described above; you can use them through the contact
+          address.
+        </p>
+        <p>
+          <strong>If you're in the EU, UK or Switzerland:</strong> we process your information to perform our contract
+          with you (running your account and subscription), for our legitimate interests (security, fixing problems),
+          and to meet legal obligations (tax records). You can access, correct, delete, export or restrict your data,
+          object to processing, and complain to your local data-protection authority. Your data is processed in the
+          United States and other countries where our providers operate, under the safeguards those providers offer
+          (such as standard contractual clauses).
+        </p>
+
+        <h3>Security</h3>
+        <p>
+          Connections are encrypted (HTTPS). Passwords are hashed. The database enforces that each account can reach
+          only its own schedules and ones shared with it. No system is perfectly secure; if a breach affects your
+          information, we'll tell you as the law requires.
+        </p>
+
+        <h3>Children</h3>
+        <p>Marga isn't for anyone under 18, and we don't knowingly collect information from children under 13.
+          If you believe a child has given us information, email us and we'll delete it.</p>
+
+        <h3>Changes</h3>
+        <p>
+          We'll update the date at the top when this policy changes, and email you before material changes take
+          effect.
+        </p>
+      </section>
+
+      <!-- ─────────────────────────── REFUNDS ─────────────────────────── -->
+      <section>
+        <h2 id="refunds">Refund &amp; Cancellation Policy</h2>
+        <p class="summary">
+          Try it free for 30 days. Cancel any time and you won't be charged again. We don't refund partial periods.
+        </p>
+
+        <h3>Cancelling</h3>
+        <ul>
+          <li>Cancel any time from Account → Manage subscription. You don't need to contact us.</li>
+          <li>Cancellation takes effect at the end of the current monthly or yearly period. You keep full access until
+            then, and you won't be charged again.</li>
+          <li>You can undo a cancellation in the same place before the period ends.</li>
+          <li><strong>Deleting your account doesn't cancel a subscription on its own.</strong> Cancel first under
+            Manage subscription, or email us and we'll cancel it for you.</li>
+        </ul>
+
+        <h3>Refunds</h3>
+        <ul>
+          <li>Payments are non-refundable. There are no refunds or credits for partial periods, unused time, or
+            forgetting to cancel before a renewal. Use the 30-day free trial to decide whether Marga suits you.</li>
+          <li>If you're charged in error (a duplicate charge, or a charge after you cancelled), email us within 60
+            days and we'll refund it in full.</li>
+          <li>We may give a refund in other cases at our discretion. Where the law in your country or state requires
+            a refund, you'll get one.</li>
+          <li>Refunds go back to the original payment method. Your bank may take 5–10 business days to show them.</li>
+        </ul>
+
+        <h3>Switching plans</h3>
+        <p>
+          Switching between monthly and yearly in Manage subscription is prorated by Stripe: unused time on your old
+          plan is credited against the new one.
+        </p>
+
+        <h3>Contact</h3>
+        <p>
+          Billing questions or a charge you don't recognise:
+          <a href="mailto:avdevdesk@gmail.com">avdevdesk@gmail.com</a>. Please email us before disputing a charge with
+          your bank. We'll usually sort it out faster.
+        </p>
+      </section>
+
+      <footer>Marga · Andrew Schaefer · Maryland, USA · <a href="mailto:avdevdesk@gmail.com">avdevdesk@gmail.com</a></footer>
+    </div>
+  </body>
+</html>

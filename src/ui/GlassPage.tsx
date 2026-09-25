@@ -71,8 +71,23 @@ export function GlassPage({
           )}
           {children}
         </div>
+        <LegalLinks />
       </div>
     </div>
+  );
+}
+
+/**
+ * Terms, privacy and refunds live on one static page (public/legal.html) so
+ * they're readable signed out; every page outside the chart links to it.
+ */
+function LegalLinks() {
+  return (
+    <nav className="legal-links" aria-label="Legal">
+      <a href="/legal.html#terms">Terms</a>
+      <a href="/legal.html#privacy">Privacy</a>
+      <a href="/legal.html#refunds">Refunds</a>
+    </nav>
   );
 }
 

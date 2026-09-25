@@ -7,6 +7,8 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Added
 
+- **Terms, Privacy and Refunds** on one public page, `/legal.html`: operated by Andrew Schaefer under Maryland law; 30-day trial, auto-renewal, cancel any time, no refunds for partial periods. Linked under every page, at sign-up, and beside the subscribe buttons with the auto-renewal terms; the Stripe Customer Portal links to it too. [R-075]
+- Billing is live: Production runs on live Stripe, with the Customer Portal and webhook endpoint configured (`docs/BILLING.md` §6.1). [R-069] [R-073]
 - **Subscriptions.** A 30-day free trial for every account (existing accounts start theirs when billing ships), then $12/year or $2/month through Stripe Checkout. Subscribers manage their card, plan and cancellation in the Stripe Customer Portal. [R-069] [R-070] [R-071]
 - **Lockout.** After the trial, with no live subscription, schedules can't be read, saved, shared or watched live. The database refuses them (402), not just the interface. The account page and sign-out stay open, nothing is deleted, and subscribing restores access at once. A failed payment keeps access while Stripe retries. [R-072]
 - Stripe webhook (`/api/billing/webhook`): signature-verified, idempotent, and the only thing that changes billing state. [R-073]

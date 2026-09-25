@@ -40,6 +40,12 @@ export function UpgradeButtons({ stacked = false }: { stacked?: boolean }) {
           {error}
         </p>
       )}
+      {/* Auto-renewal disclosure next to the button, as consumer auto-renewal
+          laws expect: that it renews, how to cancel, and the refund terms. */}
+      <p className="auth-fine">
+        Renews automatically until you cancel. Cancel any time in Manage subscription; no refunds for partial
+        periods. <a href="/legal.html#refunds">Terms</a>
+      </p>
     </div>
   );
 }

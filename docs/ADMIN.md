@@ -1,6 +1,6 @@
 # ADMIN — Marga
 
-**Last updated:** 2026-09-24
+**Last updated:** 2026-09-25
 
 ---
 
@@ -58,12 +58,20 @@ SMTP: a real sender before real users. Schema changes are migrations in `supabas
 ### Stripe settings that live only in the dashboard
 
 Product and prices, the webhook endpoint and its events, Customer Portal, failed-payment retries and
-receipts — the full checklist is `docs/BILLING.md` §6.
+receipts — the full checklist is `docs/BILLING.md` §6. The live object IDs (product, prices, Portal configuration, webhook
+endpoint) are in §6.1. Production uses live mode; Preview and Development have no Stripe variables.
+
+### Legal page
+
+`public/legal.html` — Terms, Privacy and Refunds on one static page at `/legal.html`, linked from
+every page outside the chart (`GlassPage`), sign-up and the subscribe buttons. When prices, the trial,
+cancellation or data handling change, change it too and bump its "Effective" date.
 
 ## Layout
 
 ```
 docs/            PRD.md, EDD.md, ADMIN.md, STATUS.md, BILLING.md
+public/          legal.html (Terms, Privacy, Refunds), fonts/
 api/             Vercel functions: billing/checkout.ts  billing/portal.ts  billing/webhook.ts
                  _billing.ts (pure rules)  _stripe.ts  _supabase.ts (service role)  + tests
 scripts/         verify-rls.mjs — live check of the database's access rules

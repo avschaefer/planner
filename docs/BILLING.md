@@ -1,6 +1,6 @@
 # BILLING — Marga
 
-**Status:** built, Stripe test mode · **Last updated:** 2026-09-24
+**Status:** live in Stripe live mode since 2026-09-25 · **Last updated:** 2026-09-25
 **Requirements:** R-069 – R-074 ([PRD](PRD.md) §5.7) · **Decisions:** D-044 – D-050 ([EDD](EDD.md) §6)
 
 Paid subscriptions through Stripe's hosted pages: **Checkout** to subscribe, the **Customer Portal** to change card, switch plan or cancel. There is no card form in the app, no free tier and no feature gating: every account has everything for 30 days, then needs a subscription.
@@ -20,6 +20,8 @@ Paid subscriptions through Stripe's hosted pages: **Checkout** to subscribe, the
 | Payment failure | `past_due` keeps access while Stripe retries. Access ends when the subscription does (`canceled`, `unpaid`, `incomplete_expired`, `paused`) |
 | Cancel | In the Portal, at period end. Access continues to the end of the paid period |
 | Shared schedules | Access is per **caller**. A paying collaborator keeps a schedule whose owner lapsed; a lapsed collaborator loses shared schedules too |
+
+Customer-facing terms (auto-renewal, cancellation, no refunds for partial periods) are on the public legal page, `public/legal.html` (R-075). Keep its facts in step with this table.
 
 **Out of scope:** coupons and promotion codes, team or multi-seat plans, Stripe Tax, custom emails (Stripe's built-in receipts only), trial-abuse prevention.
 
@@ -189,6 +191,20 @@ Do all of this in **test mode** first. At launch, repeat it in live mode and swa
 6. **Email receipts:** Settings → Business → Customer emails → turn on **Successful payments** (and **Refunds**). Stripe doesn't send receipts automatically in test mode; send one manually from a payment to preview it.
 7. **Branding:** Settings → Branding. Logo, and accent `#4f5bd5` to match the app. Used by Checkout, the Portal and receipts.
 
+### 6.1 Live configuration (2026-09-25)
+
+Production went straight to live mode; test mode has no Marga product yet, so Preview and Development have no Stripe variables and their Upgrade buttons say "Billing is not configured."
+
+| Object | Live ID | Notes |
+|---|---|---|
+| Product | `prod_VKCmaycxjsk8pP` "MARGA" | |
+| Monthly price | `price_1UJYMUAZYCorrR3j9W4yBeQu` | $2.00/month, nickname `marga-monthly` → `STRIPE_PRICE_MONTHLY` |
+| Annual price | `price_1UJYMUAZYCorrR3jRpT7MmPu` | $12.00/year, nickname `marga-annual` → `STRIPE_PRICE_ANNUAL` |
+| Customer Portal | `bpc_1UJYbDAZYCorrR3jJJENuHjU` | The account default, created through the API. Card update, invoice history, cancel at period end with a reason survey, switch between the two prices with proration, trial kept on switch, customer details locked. Terms and privacy URLs point at `/legal.html` |
+| Webhook endpoint | `we_1UJYbmAZYCorrR3jOuaD4hio` | `https://marga-planner.vercel.app/api/billing/webhook`, the eight §4.1 events, account-default API version. Secret rolled after setup |
+
+The same Stripe account also takes closemytab.app donations, so business name, statement descriptor and branding are shared between the two (a deliberate choice, 2026-09-25).
+
 ---
 
 ## 7. Testing
@@ -271,7 +287,8 @@ stripe test_helpers test_clocks advance <clock_id> --frozen-time <unix time just
 ## 8. Operations
 
 - **Ship order:** the code can deploy before the migration. With the billing columns missing, the app treats billing as unknown and locks nobody out, and the billing section shows a neutral note. Then: Stripe setup (§6) → env vars (§5) → redeploy, so the functions see the vars → apply `0006_billing.sql`. The migration is the switch: it starts every existing account's 30 days and turns on enforcement, so apply it when you mean it.
-- **Going live:** repeat §6 in live mode; set the live `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` and live price IDs in **Production only**. Preview and Development stay in test mode.
+- **Going live:** done 2026-09-25 (§6.1). The live `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` and price IDs are in **Production only**. To give Preview and Development billing, create the product and prices in test mode and set the test values there.
+- **Deleting an account doesn't cancel its subscription.** `delete_my_account` removes the user in the database only; Stripe keeps billing. Until that's fixed, the legal page tells users to cancel first, and a deleted subscriber's subscription must be cancelled by hand in the Dashboard.
 - **Display prices** are in `src/persist/access.ts` (`PRICES`). Keep them in step with the Stripe prices; the charge always comes from the price ID.
 - **A stuck account:** re-send any recent event for that customer from the Dashboard (Developers → Events → Resend). The handler re-syncs from Stripe's current state, so any event for the customer fixes it.
 - **Refunds and disputes** are handled in the Dashboard. A refund doesn't change access; cancel the subscription too if access should end.
