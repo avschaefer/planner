@@ -11,6 +11,9 @@
       subscription, cancel, see "Access until …". Nothing past Checkout has run in production yet.
 - [ ] **Account deletion doesn't cancel a Stripe subscription** (`docs/BILLING.md` §8). Fix before
       real subscribers; until then the legal page tells users to cancel first.
+- [ ] **Renewal reminder lead time** (owner, Stripe Dashboard): Settings → Billing → Prevent failed
+      payments → Upcoming renewal events → 15–45 days (30 suggested). The Terms promise a reminder
+      before each yearly renewal; California requires it 15–45 days ahead.
 - [ ] **Free (complimentary) accounts** for the owner and friends: design proposed 2026-09-25,
       awaiting review.
 - [ ] **Supabase → Authentication → URL Configuration** (owner, dashboard only): Site URL
@@ -23,7 +26,7 @@
 
 ## Recently completed
 
-**2026-09-25 — billing live, legal page (R-075).** Production runs on live Stripe: Customer Portal and webhook endpoint created through the API, price IDs and webhook secret in Vercel Production, Dashboard settings (business details, Smart Retries → cancel, emails, branding) done by the owner, migration 0006 applied, `npm run verify:db` passing. Checkout opens and reuses one customer per account. New public `/legal.html` (Terms, Privacy, Refunds; Maryland law; no refunds, cancel any time), linked from every page, at sign-up and beside the subscribe buttons. 97 unit and 22 browser tests pass.
+**2026-09-25 — billing live, legal page (R-075).** Production runs on live Stripe: Customer Portal and webhook endpoint created through the API, price IDs and webhook secret in Vercel Production, Dashboard settings (business details, Smart Retries → cancel, emails, branding) done by the owner, migration 0006 applied, `npm run verify:db` passing. Checkout opens and reuses one customer per account. New public `/legal.html` (Terms with cancellation and refunds, and Privacy; Maryland law; no refunds, cancel any time; no prices on the page), linked from every page, at sign-up and beside the subscribe buttons. 97 unit and 22 browser tests pass.
 
 **2026-09-24 — subscription billing (R-069 – R-074).** A 30-day trial, then $12/year or $2/month on Stripe Checkout, with the Customer Portal for card changes, plan switches and cancellation. The lockout is enforced in the database (reads, writes, sharing and realtime; a direct write gets 402) and data is never deleted. A signed, idempotent webhook is the only writer. Unit and browser suites green; the live database checks and Stripe runbook wait on keys. Spec: `docs/BILLING.md`.
 

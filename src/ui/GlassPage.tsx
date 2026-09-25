@@ -78,15 +78,15 @@ export function GlassPage({
 }
 
 /**
- * Terms, privacy and refunds live on one static page (public/legal.html) so
- * they're readable signed out; every page outside the chart links to it.
+ * Terms (with cancellation and refunds) and privacy live on one static page,
+ * public/legal.html, so they're readable signed out; every page outside the
+ * chart links to it. The label keeps "Privacy" in it, as CalOPPA expects of a
+ * privacy-policy link.
  */
 function LegalLinks() {
   return (
     <nav className="legal-links" aria-label="Legal">
-      <a href="/legal.html#terms">Terms</a>
-      <a href="/legal.html#privacy">Privacy</a>
-      <a href="/legal.html#refunds">Refunds</a>
+      <a href="/legal.html">Terms &amp; Privacy</a>
     </nav>
   );
 }

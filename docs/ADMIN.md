@@ -63,9 +63,11 @@ endpoint) are in §6.1. Production uses live mode; Preview and Development have 
 
 ### Legal page
 
-`public/legal.html` — Terms, Privacy and Refunds on one static page at `/legal.html`, linked from
-every page outside the chart (`GlassPage`), sign-up and the subscribe buttons. When prices, the trial,
-cancellation or data handling change, change it too and bump its "Effective" date.
+`public/legal.html` — Terms (section 6 is cancellation and refunds, anchor `#refunds`) and Privacy on
+one static page at `/legal.html`. One "Terms & Privacy" link on every page outside the chart
+(`GlassPage`), plus links at sign-up and beside the subscribe buttons. It names no prices or trial
+length, so pricing changes don't touch it; changes to cancellation, refunds or data handling do.
+Bump its "Effective" date with any text change.
 
 ## Layout
 

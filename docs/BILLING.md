@@ -21,7 +21,7 @@ Paid subscriptions through Stripe's hosted pages: **Checkout** to subscribe, the
 | Cancel | In the Portal, at period end. Access continues to the end of the paid period |
 | Shared schedules | Access is per **caller**. A paying collaborator keeps a schedule whose owner lapsed; a lapsed collaborator loses shared schedules too |
 
-Customer-facing terms (auto-renewal, cancellation, no refunds for partial periods) are on the public legal page, `public/legal.html` (R-075). Keep its facts in step with this table.
+Customer-facing terms (auto-renewal, cancellation, no refunds for partial periods) are on the public legal page, `public/legal.html` (R-075). It names no prices, trial length or retry schedule, so those can change here without touching it. It does promise a renewal reminder email before each yearly renewal: that is Stripe's "Send emails about upcoming renewals" (on), sent at the "Upcoming renewal events" lead time under Prevent failed payments, which must stay between 15 and 45 days (California's rule for yearly auto-renewals).
 
 **Out of scope:** coupons and promotion codes, team or multi-seat plans, Stripe Tax, custom emails (Stripe's built-in receipts only), trial-abuse prevention.
 
