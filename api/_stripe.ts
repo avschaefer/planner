@@ -1,6 +1,6 @@
 import Stripe from 'stripe';
 import type { SupabaseClient, User } from '@supabase/supabase-js';
-import { billingColumns, pickSubscription } from './_billing.js';
+import { billingColumns, cancellableSubscriptionIds, pickSubscription } from './_billing.js';
 
 /**
  * Stripe, server-side. The secret key and the webhook secret are read here
@@ -72,6 +72,9 @@ export async function syncCustomer(db: SupabaseClient, customerId: string): Prom
     // Not linked yet (ensureCustomer's write can trail the first events):
     // the customer's metadata names the user it was created for.
     const customer = await stripe().customers.retrieve(customerId);
+    if (!customer.deleted && customer.metadata?.account_deleted_at) {
+      return { ok: false, reason: `customer ${customerId} belongs to a deleted account` };
+    }
     const userId = customer.deleted ? undefined : customer.metadata?.user_id;
     if (!userId) return { ok: false, reason: `customer ${customerId} has no user_id` };
     const linked = await db
@@ -93,4 +96,18 @@ export async function syncCustomer(db: SupabaseClient, customerId: string): Prom
     .or(`billing_synced_at.is.null,billing_synced_at.lt."${readAt}"`);
   if (error) throw new Error(error.message);
   return { ok: true, userId: profile.id as string };
+}
+
+/**
+ * Stop every charge a customer could still incur: cancel each subscription
+ * that isn't already finished, immediately, and mark the customer as
+ * belonging to a deleted account so later webhook events are recognised.
+ * Throws if Stripe can't be reached, so the caller keeps the account.
+ */
+export async function cancelEverything(customerId: string): Promise<string[]> {
+  const subs = await stripe().subscriptions.list({ customer: customerId, status: 'all', limit: 100 });
+  const ids = cancellableSubscriptionIds(subs.data);
+  for (const id of ids) await stripe().subscriptions.cancel(id, { invoice_now: false, prorate: false });
+  await stripe().customers.update(customerId, { metadata: { account_deleted_at: new Date().toISOString() } });
+  return ids;
 }

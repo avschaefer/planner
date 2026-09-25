@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { isLive } from '../persist/access';
 import { deleteMyAccount, ownedSummary } from '../persist/sharing';
 import { useStore } from '../store/store';
 import { Button } from './Button';
@@ -9,6 +10,7 @@ import { Button } from './Button';
  */
 export function DeleteAccountModal({ onClose }: { onClose(): void }) {
   const email = useStore((s) => s.account?.email ?? '');
+  const subscribed = useStore((s) => isLive(s.account?.billing?.status));
   const signOut = useStore((s) => s.signOut);
   const notify = useStore((s) => s.notify);
 
@@ -76,6 +78,11 @@ export function DeleteAccountModal({ onClose }: { onClose(): void }) {
               )}
             </li>
             <li>your access to schedules others shared with you</li>
+            {subscribed && (
+              <li>
+                <strong>your subscription — cancelled immediately, with no further charges</strong>
+              </li>
+            )}
           </ul>
 
           <label className="auth-field">

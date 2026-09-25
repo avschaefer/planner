@@ -1141,11 +1141,16 @@ input {
 .billing-state span.warn { color: var(--danger); }
 .billing-state.expired b { color: var(--danger); }
 .billing-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex: none; }
-.billing-upgrade { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-.billing-upgrade.stacked { flex-direction: column; align-items: stretch; }
+.billing-upgrade { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.billing-buttons { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.billing-upgrade.stacked { align-items: stretch; }
+.billing-upgrade.stacked .billing-buttons { flex-direction: column; }
 .billing-upgrade.stacked .btn { width: 100%; height: 36px; }
+/* As wide as the buttons and no wider: width 0 + min-width 100% keeps the
+   text's own length out of the column's width, so a long line wraps instead
+   of pushing the buttons past the card's edge. */
 .billing-upgrade .auth-error,
-.billing-upgrade .auth-fine { flex-basis: 100%; }
+.billing-upgrade .auth-fine { width: 0; min-width: 100%; }
 .billing-upgrade:not(.stacked) .auth-fine { text-align: right; }
 .billing-save {
   margin-left: 8px;
@@ -1162,7 +1167,8 @@ input {
   .account-grid > form + form { border-left: 0; padding-left: 0; border-top: 1px solid rgba(26, 25, 23, 0.08); padding-top: 22px; }
   .account-billing { flex-direction: column; align-items: stretch; }
   .billing-actions { align-items: stretch; }
-  .billing-upgrade { justify-content: stretch; }
+  .billing-upgrade { align-items: stretch; }
+  .billing-buttons { justify-content: stretch; }
 }
 
 /* ---------- rename a schedule from the toolbar ---------- */
@@ -1206,6 +1212,16 @@ input {
 .share-people .who em { font-style: normal; font-size: 11.5px; color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .share-people .role-fixed { font-size: 12px; color: var(--dim); }
 .share-people .you { font-size: 11px; color: var(--faint); }
+
+/* Admin: complimentary access (AdminSection). */
+.account-admin { margin-top: 18px; }
+.comp-grant { display: flex; flex-direction: column; gap: 8px; margin: 4px 0; }
+.comp-grant input { height: 32px; padding: 0 10px; font-size: 13px; border-color: var(--line-strong); box-shadow: none; }
+.comp-grant input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+.comp-when { display: flex; gap: 8px; align-items: center; }
+.comp-when input[type='date'] { flex: 1; min-width: 0; }
+.comp-when > .btn-primary { margin-left: auto; }
+.share-people .who em.comp-warn { color: var(--danger); white-space: normal; }
 
 .pitem .tag {
   flex: none;

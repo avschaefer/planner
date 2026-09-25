@@ -1,4 +1,5 @@
 import type { ProjectRole } from '../engine/types';
+import { callApi } from './api';
 import { supabase } from './supabaseRepo';
 
 /**
@@ -70,7 +71,12 @@ export async function ownedSummary(): Promise<{ owned: number; shared: number }>
   return { owned: owned.length, shared: new Set((others ?? []).map((m) => m.project_id as string)).size };
 }
 
+/**
+ * Through the server, not the delete_my_account RPC: the server cancels any
+ * Stripe subscription first, and keeps the account if it can't (so nobody is
+ * deleted but still billed). The RPC refuses subscribers for that reason.
+ */
 export async function deleteMyAccount(): Promise<string | null> {
-  const { error } = await supabase().rpc('delete_my_account');
-  return error ? message(error) : null;
+  const { status, data } = await callApi('/api/account/delete');
+  return status === 200 ? null : (data.error ?? `Could not delete your account (${status}).`);
 }

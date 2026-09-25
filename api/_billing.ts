@@ -117,3 +117,34 @@ export function customerOf(object: unknown): string | null {
   }
   return null;
 }
+
+/**
+ * Subscriptions that could still charge: everything except the finished ones.
+ * Deleting an account cancels all of these first (api/account/delete.ts).
+ */
+export function cancellableSubscriptionIds(subs: readonly { id: string; status: string }[]): string[] {
+  return subs.filter((s) => s.status !== 'canceled' && s.status !== 'incomplete_expired').map((s) => s.id);
+}
+
+/** Whether an email is an admin's, from ADMIN_EMAIL (comma-separated allowed). */
+export function isAdminEmail(email: string | null | undefined, env: Record<string, string | undefined> = process.env): boolean {
+  const admins = (env.ADMIN_EMAIL ?? '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return !!email && admins.includes(email.trim().toLowerCase());
+}
+
+/**
+ * The comp_until to store for an admin's request: 'forever' → 'infinity', a
+ * future date (YYYY-MM-DD, end of that day UTC) → that moment, null → revoke.
+ * Anything else, or a date not in the future, is refused (undefined).
+ */
+export function compUntilFrom(input: unknown, now: Date): string | null | undefined {
+  if (input === null) return null;
+  if (input === 'forever') return 'infinity';
+  if (typeof input !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(input)) return undefined;
+  const end = new Date(`${input}T23:59:59.999Z`);
+  if (Number.isNaN(end.getTime()) || end.getTime() <= now.getTime()) return undefined;
+  return end.toISOString();
+}

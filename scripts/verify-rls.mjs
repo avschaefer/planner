@@ -213,11 +213,41 @@ try {
     r = await A.from('projects').select('id');
     check(`${status} locks`, r.data?.length === 0, JSON.stringify(r.data));
   }
+
+  // ---- complimentary access (0007) ----
+  r = await A.from('profiles').update({ comp_until: 'infinity' }).eq('id', ids[0]).select();
+  check('user cannot write comp_until', !!r.error, r.error?.message ?? JSON.stringify(r.data));
+  r = await A.rpc('admin_set_comp', { p_email: emails[0], p_until: 'infinity' });
+  check('users cannot call admin_set_comp', !!r.error, r.error?.message);
+  r = await A.rpc('admin_comp_accounts');
+  check('users cannot call admin_comp_accounts', !!r.error, r.error?.message);
+  await setBilling(ids[0], { trial_ends_at: PAST, subscription_status: 'canceled', plan: null });
+  r = await admin.rpc('admin_set_comp', { p_email: emails[0].toUpperCase(), p_until: 'infinity' });
+  check('admin_set_comp finds the account by email, any case', r.data === ids[0], r.error?.message ?? JSON.stringify(r.data));
+  r = await A.from('projects').select('id').eq('id', pid);
+  check('comp forever: access after the trial and subscription ended', r.data?.length === 1, JSON.stringify(r.data));
+  r = await admin.rpc('admin_comp_accounts');
+  check('admin_comp_accounts lists the grant', (r.data ?? []).some((a) => a.user_id === ids[0] && a.email === emails[0]), r.error?.message ?? JSON.stringify(r.data));
+  await setBilling(ids[0], { comp_until: new Date(Date.now() + 86400000).toISOString() });
+  r = await A.from('projects').select('id').eq('id', pid);
+  check('comp until a future date: access', r.data?.length === 1, JSON.stringify(r.data));
+  await setBilling(ids[0], { comp_until: PAST });
+  r = await A.from('projects').select('id').eq('id', pid);
+  check('comp that has ended: locked', r.data?.length === 0, JSON.stringify(r.data));
+  r = await admin.rpc('admin_set_comp', { p_email: emails[0], p_until: null });
+  r = await admin.from('profiles').select('comp_until').eq('id', ids[0]).single();
+  check('admin_set_comp with null revokes', r.data?.comp_until === null, JSON.stringify(r.data));
+  r = await admin.rpc('admin_set_comp', { p_email: 'nobody.' + stamp + '@example.com', p_until: 'infinity' });
+  check('admin_set_comp refuses an unknown email', r.error?.code === 'P0002', r.error?.code + ' ' + r.error?.message);
   await setBilling(ids[0], { trial_ends_at: TRIAL, subscription_status: null, plan: null });
   await A.rpc('remove_member', { p_id: pid, p_user: ids[1] });
 
   // ---- deleting an account ----
   await A.rpc('share_project', { p_id: pid, p_email: emails[1], p_role: 'editor' });
+  await setBilling(ids[1], { subscription_status: 'active', plan: 'monthly' });
+  r = await B.rpc('delete_my_account');
+  check('delete_my_account refuses while a subscription is live', r.error?.code === 'PT409', r.error?.code + ' ' + r.error?.message);
+  await setBilling(ids[1], { subscription_status: null, plan: null });
   const del = await B.rpc('delete_my_account');
   check('a user can delete their own account', !del.error, del.error?.message);
   const gone = await admin.auth.admin.getUserById(ids[1]);

@@ -41,11 +41,17 @@ function friendly(message: string): string {
 
 async function loadAccount(user: { id: string; email?: string } | null | undefined): Promise<Account | null> {
   if (!user) return null;
+  const billingColumns =
+    'display_name, plan, trial_ends_at, subscription_status, current_period_end, cancel_at_period_end, stripe_customer_id';
   let { data, error } = await supabase()
     .from('profiles')
-    .select('display_name, plan, trial_ends_at, subscription_status, current_period_end, cancel_at_period_end, stripe_customer_id')
+    .select(`${billingColumns}, comp_until`)
     .eq('id', user.id)
     .maybeSingle();
+  if (error) {
+    // comp_until not there yet (code deployed ahead of migration 0007).
+    ({ data, error } = await supabase().from('profiles').select(billingColumns).eq('id', user.id).maybeSingle());
+  }
   if (error) {
     // Billing columns not there yet (code deployed ahead of migration 0006):
     // keep the name, leave billing unknown.
@@ -64,6 +70,7 @@ async function loadAccount(user: { id: string; email?: string } | null | undefin
           currentPeriodEnd: (data.current_period_end as string | null) ?? null,
           cancelAtPeriodEnd: data.cancel_at_period_end === true,
           hasCustomer: Boolean(data.stripe_customer_id),
+          compUntil: ((data as { comp_until?: string | null }).comp_until as string | null | undefined) ?? null,
         }
       : null,
   };

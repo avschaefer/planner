@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { changeEmail, MIN_PASSWORD, setPassword, updateDisplayName } from '../persist/auth';
 import { useStore } from '../store/store';
+import { AdminSection } from './AdminSection';
 import { BillingSection } from './BillingSection';
 import { Button } from './Button';
 import { DeleteAccountModal } from './DeleteAccountModal';
@@ -138,6 +139,7 @@ export function ProfilePage() {
       </div>
 
       <BillingSection />
+      <AdminSection />
 
       {error && (
         <p className="auth-error account-error" role="alert">

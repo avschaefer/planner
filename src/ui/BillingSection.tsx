@@ -28,13 +28,15 @@ export function UpgradeButtons({ stacked = false }: { stacked?: boolean }) {
 
   return (
     <div className={`billing-upgrade${stacked ? ' stacked' : ''}`}>
-      <Button variant="primary" disabled={busy !== null} onClick={() => void go('annual')}>
-        {busy === 'annual' ? 'Opening checkout…' : `Annual — ${PRICES.annual.amount}/${PRICES.annual.per}`}
-        {busy !== 'annual' && <span className="billing-save">Save 50%</span>}
-      </Button>
-      <Button variant="secondary" disabled={busy !== null} onClick={() => void go('monthly')}>
-        {busy === 'monthly' ? 'Opening checkout…' : `Monthly — ${PRICES.monthly.amount}/${PRICES.monthly.per}`}
-      </Button>
+      <div className="billing-buttons">
+        <Button variant="primary" disabled={busy !== null} onClick={() => void go('annual')}>
+          {busy === 'annual' ? 'Opening checkout…' : `Annual — ${PRICES.annual.amount}/${PRICES.annual.per}`}
+          {busy !== 'annual' && <span className="billing-save">Save 50%</span>}
+        </Button>
+        <Button variant="secondary" disabled={busy !== null} onClick={() => void go('monthly')}>
+          {busy === 'monthly' ? 'Opening checkout…' : `Monthly — ${PRICES.monthly.amount}/${PRICES.monthly.per}`}
+        </Button>
+      </div>
       {error && (
         <p className="auth-error" role="alert">
           {error}
@@ -64,6 +66,11 @@ function describe(state: BillingState): { label: string; detail: string } {
       if (state.firstChargePending) return { label: plan, detail: `Your trial runs to the end; first charge on ${day(state.periodEnd)}.` };
       return { label: plan, detail: state.periodEnd ? `Renews ${day(state.periodEnd)}.` : 'Active.' };
     }
+    case 'comp':
+      return {
+        label: 'Complimentary access',
+        detail: state.until ? `Free until ${day(state.until)}. No card needed.` : 'Free, with no end date. No card needed.',
+      };
     case 'expired':
       return {
         label: state.hadSubscription ? 'Subscription ended' : 'Trial ended',
@@ -149,7 +156,7 @@ export function BillingSection() {
         </div>
       </div>
       <div className="billing-actions">
-        {state.kind !== 'active' && !waiting && <UpgradeButtons />}
+        {state.kind !== 'active' && state.kind !== 'comp' && !waiting && <UpgradeButtons />}
         {billing.hasCustomer && (
           <Button
             variant={state.kind === 'active' && state.pastDue ? 'primary' : 'ghost'}

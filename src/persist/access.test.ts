@@ -9,6 +9,7 @@ const base: Billing = {
   currentPeriodEnd: null,
   cancelAtPeriodEnd: false,
   hasCustomer: false,
+  compUntil: null,
 };
 
 describe('billingState', () => {
@@ -50,6 +51,34 @@ describe('billingState', () => {
 
   it('an incomplete checkout during the trial leaves the trial running', () => {
     expect(billingState({ ...base, status: 'incomplete' }, now).kind).toBe('trial');
+  });
+});
+
+describe('complimentary access', () => {
+  const expired = { ...base, trialEndsAt: '2026-09-01T00:00:00Z' };
+
+  it('forever grants access with no end date', () => {
+    expect(billingState({ ...expired, compUntil: 'infinity' }, now)).toEqual({ kind: 'comp', until: null });
+    expect(hasAccess({ ...expired, compUntil: 'infinity' }, now)).toBe(true);
+  });
+
+  it('a future date grants access until then', () => {
+    const b = { ...expired, compUntil: '2027-01-01T00:00:00Z' };
+    expect(billingState(b, now)).toEqual({ kind: 'comp', until: '2027-01-01T00:00:00Z' });
+    expect(hasAccess(b, now)).toBe(true);
+  });
+
+  it('a past date grants nothing; the account falls back to trial or lockout', () => {
+    expect(hasAccess({ ...expired, compUntil: '2026-09-30T00:00:00Z' }, now)).toBe(false);
+    expect(billingState({ ...base, compUntil: '2026-09-30T00:00:00Z' }, now)).toMatchObject({ kind: 'trial' });
+  });
+
+  it('a live subscription shows over comp, so it can still be cancelled', () => {
+    expect(billingState({ ...expired, compUntil: 'infinity', status: 'active', plan: 'annual' }, now)).toMatchObject({ kind: 'active' });
+  });
+
+  it('comp shows over a running trial', () => {
+    expect(billingState({ ...base, compUntil: 'infinity' }, now)).toEqual({ kind: 'comp', until: null });
   });
 });
 

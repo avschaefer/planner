@@ -9,13 +9,9 @@
 
 - [ ] **Real-card end-to-end run** (owner): subscribe, see the plan appear, open Manage
       subscription, cancel, see "Access until …". Nothing past Checkout has run in production yet.
-- [ ] **Account deletion doesn't cancel a Stripe subscription** (`docs/BILLING.md` §8). Fix before
-      real subscribers; until then the legal page tells users to cancel first.
 - [ ] **Renewal reminder lead time** (owner, Stripe Dashboard): Settings → Billing → Prevent failed
       payments → Upcoming renewal events → 15–45 days (30 suggested). The Terms promise a reminder
       before each yearly renewal; California requires it 15–45 days ahead.
-- [ ] **Free (complimentary) accounts** for the owner and friends: design proposed 2026-09-25,
-      awaiting review.
 - [ ] **Supabase → Authentication → URL Configuration** (owner, dashboard only): Site URL
       `https://marga-planner.vercel.app`; Redirect URLs `https://marga-planner.vercel.app/**` and
       `http://localhost:5173/**`. Until this is set, confirmation and reset links point at localhost.
@@ -25,6 +21,8 @@
 - [ ] **Plan a real program in it** and see what breaks.
 
 ## Recently completed
+
+**2026-09-25 — deletion cancels billing; free accounts (R-076, R-077).** Deleting an account now cancels its Stripe subscription first and keeps the account if Stripe can't be reached; the database function refuses subscribers. Complimentary access (`comp_until`, forever or until a date) is granted from an Admin panel only `ADMIN_EMAIL` sees. Migration 0007 applied; `verify:db` 82/82; 115 unit and 22 browser tests pass; admin grant, comp display and both delete paths walked in a browser against the live database. Also fixed the subscribe row overflowing the account card.
 
 **2026-09-25 — billing live, legal page (R-075).** Production runs on live Stripe: Customer Portal and webhook endpoint created through the API, price IDs and webhook secret in Vercel Production, Dashboard settings (business details, Smart Retries → cancel, emails, branding) done by the owner, migration 0006 applied, `npm run verify:db` passing. Checkout opens and reuses one customer per account. New public `/legal.html` (Terms with cancellation and refunds, and Privacy; Maryland law; no refunds, cancel any time; no prices on the page), linked from every page, at sign-up and beside the subscribe buttons. 97 unit and 22 browser tests pass.
 

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   billingColumns,
+  cancellableSubscriptionIds,
+  compUntilFrom,
+  isAdminEmail,
   checkoutTrialEnd,
   customerOf,
   pickSubscription,
@@ -95,5 +98,41 @@ describe('customerOf', () => {
     expect(customerOf({ customer: { id: 'cus_2' } })).toBe('cus_2');
     expect(customerOf({ customer: null })).toBeNull();
     expect(customerOf(null)).toBeNull();
+  });
+});
+
+describe('cancellableSubscriptionIds', () => {
+  it('cancels everything that could still charge, and skips what is finished', () => {
+    const subs = ['active', 'trialing', 'past_due', 'unpaid', 'incomplete', 'paused', 'canceled', 'incomplete_expired'].map(
+      (status, i) => ({ id: `sub_${i}`, status }),
+    );
+    expect(cancellableSubscriptionIds(subs)).toEqual(['sub_0', 'sub_1', 'sub_2', 'sub_3', 'sub_4', 'sub_5']);
+  });
+});
+
+describe('isAdminEmail', () => {
+  it('matches ADMIN_EMAIL case- and space-insensitively, and allows a list', () => {
+    expect(isAdminEmail('Me@Example.com', { ADMIN_EMAIL: ' me@example.com ' })).toBe(true);
+    expect(isAdminEmail('b@x.io', { ADMIN_EMAIL: 'a@x.io, b@x.io' })).toBe(true);
+  });
+  it('is nobody when unset or empty, and never matches a missing email', () => {
+    expect(isAdminEmail('me@example.com', {})).toBe(false);
+    expect(isAdminEmail('', { ADMIN_EMAIL: ',' })).toBe(false);
+    expect(isAdminEmail(undefined, { ADMIN_EMAIL: 'me@example.com' })).toBe(false);
+  });
+});
+
+describe('compUntilFrom', () => {
+  const now = new Date('2026-09-25T12:00:00Z');
+  it('maps forever, a future date and revoke', () => {
+    expect(compUntilFrom('forever', now)).toBe('infinity');
+    expect(compUntilFrom('2026-12-31', now)).toBe('2026-12-31T23:59:59.999Z');
+    expect(compUntilFrom(null, now)).toBeNull();
+  });
+  it('refuses past dates, today-already-over and anything malformed', () => {
+    expect(compUntilFrom('2026-09-24', now)).toBeUndefined();
+    expect(compUntilFrom('tomorrow', now)).toBeUndefined();
+    expect(compUntilFrom('2026-13-45', now)).toBeUndefined();
+    expect(compUntilFrom(42, now)).toBeUndefined();
   });
 });

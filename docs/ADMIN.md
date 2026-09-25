@@ -61,6 +61,13 @@ Product and prices, the webhook endpoint and its events, Customer Portal, failed
 receipts — the full checklist is `docs/BILLING.md` §6. The live object IDs (product, prices, Portal configuration, webhook
 endpoint) are in §6.1. Production uses live mode; Preview and Development have no Stripe variables.
 
+### Admin panel and free accounts
+
+`ADMIN_EMAIL` (Vercel Production; `.env.local` for local) names the admin account. Signed in as it,
+Account → Admin → **Manage free accounts** grants or revokes complimentary access by email.
+Details: `docs/BILLING.md` §9. Deleting an account cancels its Stripe subscription first
+(`api/account/delete.ts`).
+
 ### Legal page
 
 `public/legal.html` — Terms (section 6 is cancellation and refunds, anchor `#refunds`) and Privacy on

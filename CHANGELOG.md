@@ -7,6 +7,8 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Added
 
+- **Deleting an account cancels its subscription** immediately, before the account is removed; if Stripe can't be reached the account is kept. The delete dialog says so. [R-076]
+- **Free accounts.** The admin (`ADMIN_EMAIL`) grants or revokes complimentary access, forever or until a date, from an Admin section on their account page. Comped accounts see "Complimentary access". Migration `0007_comp_and_safe_delete.sql`. [R-077]
 - **Terms & Privacy** on one public page, `/legal.html`: operated by Andrew Schaefer under Maryland law; free trial, auto-renewal with a reminder before yearly renewals, cancel any time, no refunds for partial periods. No prices on the page, so pricing can change without it. One "Terms & Privacy" link on every page (bottom-left on wide screens), plus links at sign-up and beside the subscribe buttons with the auto-renewal terms; the Stripe Customer Portal links to it too. [R-075]
 - Billing is live: Production runs on live Stripe, with the Customer Portal and webhook endpoint configured (`docs/BILLING.md` §6.1). [R-069] [R-073]
 - **Subscriptions.** A 30-day free trial for every account (existing accounts start theirs when billing ships), then $12/year or $2/month through Stripe Checkout. Subscribers manage their card, plan and cancellation in the Stripe Customer Portal. [R-069] [R-070] [R-071]
@@ -97,6 +99,7 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Fixed
 
+- The subscribe buttons' auto-renewal line no longer pushes the buttons past the account card's edge on wide screens.
 - Sign-up needed a small scroll on short windows. The hero title now also scales with window height, and the form is tighter. [R-061]
 - (Caught before release) A viewer's save failed with a misleading duplicate-key error, and their lock request answered "granted"; both are now refused up front. The interface also briefly mistook a viewer for the owner because a role lookup returned every member's row. [R-068]
 - A link from a summary was saved but ignored — the successor did not move. [R-018]

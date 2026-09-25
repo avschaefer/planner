@@ -137,8 +137,10 @@ Full spec, state model and test runbook: [`BILLING.md`](BILLING.md).
 | R-073 | Stripe is the source of truth | Subscription state changes only through a signature-verified webhook, never from a redirect or client input. Redelivered or out-of-order events leave the same result. One Stripe customer per account | P1 |
 | R-074 | Billing on the account page | Shows trial with days left, active with plan and renewal (or cancel) date, past-due warning, or expired; upgrade buttons for annual and monthly; "Manage subscription" for anyone who has been a customer. After Checkout, waits for the webhook before showing the subscription | P2 |
 | R-075 | Terms and privacy | One public page (`/legal.html`), readable signed out and without JavaScript: Terms of Service (with a Cancellation and refunds section) and Privacy Policy. It states no prices, trial length or retry schedule, which the app and Checkout show. One "Terms & Privacy" link on every page outside the chart (bottom-left on wide screens), plus links at sign-up ("By creating an account you agree…") and beside the subscribe buttons with the auto-renewal terms. The Customer Portal links to it | P1 |
+| R-076 | Deleting an account cancels its subscription | Deleting an account cancels every Stripe subscription that could still charge, immediately, before the account is removed. If Stripe can't be reached the account is kept and the person is told to try again, so nobody is deleted but still billed. The delete dialog says the subscription will be cancelled. No direct path (the database function) deletes a subscriber | P1 |
+| R-077 | Complimentary access, granted by the admin | The admin (identified by `ADMIN_EMAIL`, server-side) grants an existing account free full access forever or until a date, and revokes it, from an Admin section on their own account page. Nobody else sees the section or can call it (403), and users can't grant themselves access. A comped account sees "Complimentary access" and no upgrade buttons | P2 |
 
-**Totals: 56 requirements — P0: 18 · P1: 28 · P2: 10**
+**Totals: 58 requirements — P0: 18 · P1: 29 · P2: 11**
 
 ---
 

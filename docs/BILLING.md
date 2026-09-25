@@ -1,6 +1,7 @@
 # BILLING — Marga
 
 **Status:** live in Stripe live mode since 2026-09-25 · **Last updated:** 2026-09-25
+**Also here:** complimentary access and the admin panel (§9, R-077); account deletion cancels the subscription first (§3.3, R-076)
 **Requirements:** R-069 – R-074 ([PRD](PRD.md) §5.7) · **Decisions:** D-044 – D-050 ([EDD](EDD.md) §6)
 
 Paid subscriptions through Stripe's hosted pages: **Checkout** to subscribe, the **Customer Portal** to change card, switch plan or cancel. There is no card form in the app, no free tier and no feature gating: every account has everything for 30 days, then needs a subscription.
@@ -34,6 +35,7 @@ Access is one function of two facts on `public.profiles`: the trial end, and the
 ```
 has_access = trial_ends_at > now()
           OR subscription_status IN ('active', 'trialing', 'past_due')
+          OR comp_until > now()                  -- complimentary (0007); 'infinity' = forever
 ```
 
 | App state | Condition | Access | Account page shows |
@@ -85,7 +87,7 @@ The browser talks to Supabase directly (D-037), so **the database is the server-
 | Sharing | `share_project`, `set_member_role` raise `PT402`; `project_people` returns nothing |
 | Realtime | Supabase Realtime applies the `select` policy to each subscriber, so a locked account receives no events |
 | Page loads | The SPA bundle holds no data; with no access every query returns empty and the app draws `LockoutScreen` |
-| Still allowed while locked | Read own profile, update `display_name`, `delete_my_account`, `remove_member` (leaving), sign-out, `/api/billing/*` |
+| Still allowed while locked | Read own profile, update `display_name`, account deletion (`/api/account/delete`), `remove_member` (leaving), sign-out, `/api/billing/*` |
 
 The lockout screen is presentation only. A trial that ends mid-session is noticed by a one-minute clock in `App.tsx`, or by the first refused save (402 → re-read account → lockout).
 
@@ -101,6 +103,7 @@ The lockout screen is presentation only. A trial that ends mid-session is notice
 | `current_period_end` | webhook | Next renewal, or last day when cancelling |
 | `cancel_at_period_end` | webhook | True if `cancel_at_period_end` or `cancel_at` is set |
 | `billing_synced_at` | webhook | When the written state was read from Stripe; guards against stale writes |
+| `comp_until` | admin panel (`admin_set_comp`, 0007) | Complimentary access until this moment; `infinity` for no end; null for none |
 
 Users keep `select` on their row and `update (display_name)` only, so every billing column is unwritable from the browser (verified by `npm run verify:db`). `public.stripe_events(id, type, received_at)` logs processed webhook events; it has RLS and no grants for `anon` or `authenticated`.
 
@@ -111,6 +114,8 @@ Users keep `select` on their row and `update (display_name)` only, so every bill
 | `POST /api/billing/checkout` `{interval}` | `Authorization: Bearer <Supabase access token>`, checked with `auth.getUser` | Creates the Stripe customer once, or reuses it. Refuses with 409 if Stripe already has a live subscription for them. Returns a Checkout Session URL (subscription mode, price from env, `client_reference_id` and `subscription_data.metadata.user_id` = user id, `trial_end` when applicable) |
 | `POST /api/billing/portal` | same | Customer Portal URL; 404 if no customer yet |
 | `POST /api/billing/webhook` | Stripe signature over the raw body | The only writer of subscription state (§4) |
+| `POST /api/account/delete` | Bearer token | Cancels every subscription that could still charge (immediately, unprorated), marks the customer `account_deleted_at`, **then** deletes the user. If Stripe fails → 502 and the account is kept. `delete_my_account` (the RPC) refuses with `PT409` while a subscription is live, so this is a subscriber's only way out |
+| `GET` / `POST /api/admin/comp` | Bearer token **and** email in `ADMIN_EMAIL` (confirmed), else 403 | List grants; grant (`forever` or a date) or revoke (`null`) by email (§9) |
 
 The browser sends an *interval*, never a price ID. Return URLs are `/?billing=success|cancel|portal`. On `success` the account page shows "Confirming…" and re-reads the profile every 2 s, for up to a minute, until the webhook has landed. **The redirect grants nothing.**
 
@@ -155,6 +160,7 @@ All server-only. None is `VITE_`-prefixed, so none can reach the bundle.
 | `STRIPE_PRICE_ANNUAL` | `price_…` of the $12/year price | ✅ | ✅ | ✅ |
 | `SUPABASE_URL` | Same value as `VITE_SUPABASE_URL` | ✅ | ✅ | ✅ |
 | `SUPABASE_SECRET_KEY` | `sb_secret_…` (bypasses RLS) | ✅ | ✅ | ✅ |
+| `ADMIN_EMAIL` | The admin's account email (comma-separate for more than one). Server-only on purpose: the page asks `/api/admin/comp` and gets 403 unless admin, so the email never ships in the bundle | ✅ | optional | optional (`.env.local`) |
 
 ¹ Preview URLs change every deployment and are behind Vercel Deployment Protection, so Stripe can't reach them by default. Without a preview webhook, Checkout works on a preview but the subscription never shows as confirmed. Add one only if you need end-to-end billing on previews: a test-mode endpoint on a stable branch alias, plus a protection bypass.
 ² `stripe listen` prints a secret that stays stable per machine and login. Keep it in `.env.local`, not Vercel.
@@ -288,7 +294,22 @@ stripe test_helpers test_clocks advance <clock_id> --frozen-time <unix time just
 
 - **Ship order:** the code can deploy before the migration. With the billing columns missing, the app treats billing as unknown and locks nobody out, and the billing section shows a neutral note. Then: Stripe setup (§6) → env vars (§5) → redeploy, so the functions see the vars → apply `0006_billing.sql`. The migration is the switch: it starts every existing account's 30 days and turns on enforcement, so apply it when you mean it.
 - **Going live:** done 2026-09-25 (§6.1). The live `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` and price IDs are in **Production only**. To give Preview and Development billing, create the product and prices in test mode and set the test values there.
-- **Deleting an account doesn't cancel its subscription.** `delete_my_account` removes the user in the database only; Stripe keeps billing. Until that's fixed, the legal page tells users to cancel first, and a deleted subscriber's subscription must be cancelled by hand in the Dashboard.
+- **Deleted accounts:** the customer stays in Stripe (payment history) with `metadata.account_deleted_at`; its subscriptions are cancelled. Later webhook events for it are logged as "belongs to a deleted account" and answered 200.
 - **Display prices** are in `src/persist/access.ts` (`PRICES`). Keep them in step with the Stripe prices; the charge always comes from the price ID.
 - **A stuck account:** re-send any recent event for that customer from the Dashboard (Developers → Events → Resend). The handler re-syncs from Stripe's current state, so any event for the customer fixes it.
 - **Refunds and disputes** are handled in the Dashboard. A refund doesn't change access; cancel the subscription too if access should end.
+
+---
+
+## 9. Complimentary access
+
+Free, full access for the owner and friends, with no Stripe involvement: no price, no coupon, no $0 subscription.
+
+| | |
+|---|---|
+| Where | `profiles.comp_until` (migration 0007): a moment, `infinity` (forever), or null. Part of `private.has_access()`, so the database honours it everywhere |
+| Who sets it | Only the admin, from **Account → Admin → Manage free accounts**. The panel appears when `/api/admin/comp` answers 200, which it does only for a confirmed account whose email is in `ADMIN_EMAIL`. Users can't write the column (grant is `display_name` only), and `admin_set_comp` / `admin_comp_accounts` are executable by the service role only |
+| How | Enter the email of an existing account (they sign up first), choose *Forever* or *Until* a date, *Grant*. *Revoke* sets it back to null; the account falls back to trial, subscription or lockout |
+| What they see | "Complimentary access — Free, with no end date" (or "until {date}"), no upgrade buttons. A live subscription shows instead of comp, so they can still cancel it; the admin list flags anyone who is also paying |
+| Without the panel | Supabase SQL editor: `select public.admin_set_comp('friend@example.com', 'infinity');` (or a timestamp, or `null`) |
+

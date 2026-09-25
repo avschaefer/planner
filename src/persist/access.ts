@@ -1,13 +1,15 @@
 /**
  * Who may use the app, as a pure function of the billing columns on their
- * profile. The database decides for real (private.has_access in migration
- * 0006); this is the same rule, for drawing the right screen and for the
+ * profile. The database decides for real (private.has_access, migrations
+ * 0006 and 0007); this is the same rule, for drawing the right screen and for the
  * webhook to pick which subscription counts. Imported by api/ as well as the
  * browser, so it imports nothing.
  *
  *   trial    — within 30 days of account creation, no live subscription
  *   active   — a subscription Stripe still considers live (past_due included:
  *              access holds while Stripe retries the card)
+ *   comp     — complimentary access granted by the admin (comp_until), with no
+ *              live subscription; forever or until a date
  *   expired  — neither; the app is locked, the data is kept
  */
 
@@ -35,6 +37,8 @@ export interface Billing {
   cancelAtPeriodEnd: boolean;
   /** Has a Stripe customer, so the Customer Portal has something to show. */
   hasCustomer: boolean;
+  /** Complimentary access until this moment; 'infinity' for no end; null for none. */
+  compUntil: string | null;
 }
 
 export type BillingState =
@@ -50,6 +54,8 @@ export type BillingState =
       /** Subscribed during the app trial: the first charge is at periodEnd. */
       firstChargePending: boolean;
     }
+  /** Complimentary. `until` is null when it has no end. */
+  | { kind: 'comp'; until: string | null }
   | { kind: 'expired'; hadSubscription: boolean };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -65,6 +71,10 @@ export function billingState(b: Billing, now: Date = new Date()): BillingState {
       firstChargePending: b.status === 'trialing',
     };
   }
+  // A live subscription wins over comp, so someone who is also paying still
+  // sees it and can cancel it.
+  if (b.compUntil === 'infinity') return { kind: 'comp', until: null };
+  if (b.compUntil && new Date(b.compUntil).getTime() > now.getTime()) return { kind: 'comp', until: b.compUntil };
   const left = new Date(b.trialEndsAt).getTime() - now.getTime();
   if (left > 0) return { kind: 'trial', daysLeft: Math.ceil(left / DAY_MS), endsAt: b.trialEndsAt };
   return { kind: 'expired', hadSubscription: b.status !== null };
