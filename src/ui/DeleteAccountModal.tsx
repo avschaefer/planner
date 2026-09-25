@@ -78,12 +78,13 @@ export function DeleteAccountModal({ onClose }: { onClose(): void }) {
               )}
             </li>
             <li>your access to schedules others shared with you</li>
-            {subscribed && (
-              <li>
-                <strong>your subscription — cancelled immediately, with no further charges</strong>
-              </li>
-            )}
           </ul>
+          {subscribed && (
+            <p className="auth-note">
+              Your subscription will be terminated effective immediately upon deletion; no further charges will accrue,
+              and fees paid for the current billing period are non-refundable.
+            </p>
+          )}
 
           <label className="auth-field">
             <span>Type your email to confirm</span>
