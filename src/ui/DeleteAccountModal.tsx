@@ -77,7 +77,7 @@ export function DeleteAccountModal({ onClose }: { onClose(): void }) {
             </li>
             <li>your access to schedules others shared with you</li>
           </ul>
-          <p className="auth-note">
+          <p className="auth-note" style={{ marginBottom: 16 }}>
             Any active subscription will be terminated effective immediately upon deletion; no further charges will
             accrue, and fees paid for the current billing period are non-refundable.
           </p>
