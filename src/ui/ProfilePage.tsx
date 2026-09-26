@@ -83,7 +83,7 @@ export function ProfilePage() {
   }
 
   return (
-    <GlassPage wide hero={false}>
+    <GlassPage wide hero={false} onMark={closeProfile}>
       <header className="account-head">
         <Button variant="ghost" size="sm" onClick={closeProfile} title="Back to schedules">
           <Icon.Back /> Schedules

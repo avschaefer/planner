@@ -27,6 +27,7 @@ export function GlassPage({
   wide = false,
   hero = true,
   action,
+  onMark,
 }: {
   children: ReactNode;
   narrow?: boolean;
@@ -39,6 +40,8 @@ export function GlassPage({
   hero?: boolean;
   /** Top-right of the card's header, e.g. the account button. */
   action?: ReactNode;
+  /** Makes the small top-left logotype a button, e.g. back to the schedules. */
+  onMark?: () => void;
 }) {
   return (
     <div className="home">
@@ -46,12 +49,18 @@ export function GlassPage({
         <Aurora />
         <span className="grain" />
       </div>
-      {!hero && (
-        <div className="page-mark">
-          <Mark />
-          <span>Marga</span>
-        </div>
-      )}
+      {!hero &&
+        (onMark ? (
+          <button type="button" className="page-mark" onClick={onMark} title="Back to schedules">
+            <Mark />
+            <span>Marga</span>
+          </button>
+        ) : (
+          <div className="page-mark">
+            <Mark />
+            <span>Marga</span>
+          </div>
+        ))}
       <div className={`home-scroll${hero ? '' : ' centred'}`}>
         {hero && (
           /* Decoration: the card's <h1> is the accessible name. */

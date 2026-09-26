@@ -1102,6 +1102,9 @@ input {
   gap: 10px;
   color: var(--accent);
 }
+button.page-mark { padding: 4px 6px; margin: -4px -6px; background: none; border: 0; border-radius: var(--radius); cursor: pointer; }
+button.page-mark:hover span { color: var(--accent); }
+button.page-mark:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-line); }
 .page-mark span {
   font-family: var(--display);
   font-size: 14px;
