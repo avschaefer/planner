@@ -15,6 +15,8 @@
 
 ## Recently completed
 
+**2026-09-25 — Assigned column, left labels (R-078, R-057).** Free-text Assigned column; left-side labels no longer clip at the chart's edge. 118 unit and 22 browser tests pass; checked in a browser.
+
 **2026-09-25 — final touches.** Delete dialog carries a formal termination notice for everyone (R-076); account-page logotype returns to schedules; the bar mark is the favicon and touch icon. Supabase redirect URLs set (production and localhost).
 
 **2026-09-25 — ready to share.** Real-card run in production passed: Checkout with the trial carried over, webhook to the account page, Portal, and account deletion cancelled the subscription in Stripe (`cancellation_requested`). Supabase Site URL set; password- and email-change notifications on; Stripe 7-day trial and renewal reminders on.

@@ -139,6 +139,7 @@ interface State {
 
   addTask(afterId?: string | null): string | null;
   setName(id: string, name: string): void;
+  setAssignee(id: string, assignee: string): void;
   setDuration(id: string, days: number): void;
   setType(ids: string | string[], type: TaskType): void;
   setStart(id: string, day: WorkDay): void;
@@ -625,6 +626,17 @@ export const useStore = create<State>((set, get) => {
       commit((d) => {
         const t = d.tasks.find((x) => x.id === id);
         if (t) t.name = name;
+      });
+    },
+
+    setAssignee(id, assignee) {
+      commit((d) => {
+        const t = d.tasks.find((x) => x.id === id);
+        if (!t) return false;
+        const next = assignee.trim();
+        if ((t.assignee ?? '') === next) return false;
+        if (next) t.assignee = next;
+        else delete t.assignee;
       });
     },
 

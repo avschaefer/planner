@@ -14,7 +14,7 @@ import { Button } from './Button';
 import { LinkPopover } from './LinkPopover';
 import { anchorsFor, routeDependency, type Anchor } from './linkPath';
 import { BAR_H, BAR_Y, ROW_H, type Row } from './rows';
-import { majorTicks, todayX, weekendBands, type Timeline } from './timeline';
+import { majorTicks, todayX, weekendBands, type LeftReach, type Timeline } from './timeline';
 
 /** How far outside a bar's end its link handle sits, and how big its target is. */
 const KNOB_OUT = 10;
@@ -681,6 +681,29 @@ function labelPlacement(
   }
   // Past the float tail, so the two never draw through each other.
   return { x: Math.max(x + w, tail ?? 0) + GAP, anchor: 'start', inside: false, width };
+}
+
+/**
+ * Every label that will be drawn left of its bar, with the room it needs, so
+ * the timeline can start early enough to show it whole (buildTimeline).
+ * Mirrors labelPlacement / milestonePlacement.
+ */
+export function leftLabelReach(rows: readonly Row[], schedule: ScheduleResult | null, st: Settings): LeftReach[] {
+  if (!schedule) return [];
+  const out: LeftReach[] = [];
+  for (const { task } of rows) {
+    const s = schedule.byId.get(task.id);
+    if (!s) continue;
+    const isMilestone = task.type === 'milestone';
+    const left = isMilestone
+      ? st.milestoneSide === 'left'
+      : (task.type === 'summary' ? st.summaryText : st.barText) === 'left';
+    if (!left) continue;
+    const label = labelFor(task, s.start, st);
+    if (!label) continue;
+    out.push({ start: s.start, px: (isMilestone ? 13 : GAP) + textWidth(label) + 8 });
+  }
+  return out;
 }
 
 function milestonePlacement(x: number, label: string, st: Settings): Placement | null {

@@ -109,6 +109,7 @@ Priority: **P0** = the app is pointless without it · **P1** = needed before it'
 | R-057 | Presentation settings | One modal sets the accent, group and critical-path palettes; activity and summary bar shape and where their name sits (left, inside, right, none); milestone shape, label (name, date, both, none) and side; the date format used everywhere; and whether float tails are drawn. Settings persist across sessions and projects | P2 |
 | R-058 | Export the chart as a PNG | One action writes the whole timeline — not just the visible scroll window — with its header, at 2× for print. The image carries the current formatting | P2 |
 | R-059 | Hide the activity table | A toggle collapses the table so the chart has the whole window; the choice persists | P2 |
+| R-078 | Assigned column | A free-text *Assigned* column after Predecessors, edited in place like the other cells (click, Enter, Tab, undo). For reading the list only: nothing schedules, filters or notifies from it | P2 |
 | R-060 | Clicking empty space clears the selection | Clicking the chart below the last bar, the timeline header, the table header, or the table's empty area deselects, so a snapshot carries no selection highlight | P2 |
 
 ### 5.6 Sharing
@@ -140,7 +141,7 @@ Full spec, state model and test runbook: [`BILLING.md`](BILLING.md).
 | R-076 | Deleting an account cancels its subscription | Deleting an account cancels every Stripe subscription that could still charge, immediately, before the account is removed. If Stripe can't be reached the account is kept and the person is told to try again, so nobody is deleted but still billed. The delete dialog says the subscription will be cancelled. No direct path (the database function) deletes a subscriber | P1 |
 | R-077 | Complimentary access, granted by the admin | The admin (identified by `ADMIN_EMAIL`, server-side) grants an existing account free full access forever or until a date, and revokes it, from an Admin section on their own account page. Nobody else sees the section or can call it (403), and users can't grant themselves access. A comped account sees "Complimentary access" and no upgrade buttons | P2 |
 
-**Totals: 58 requirements — P0: 18 · P1: 29 · P2: 11**
+**Totals: 59 requirements — P0: 18 · P1: 29 · P2: 12**
 
 ---
 

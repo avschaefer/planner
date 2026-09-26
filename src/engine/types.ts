@@ -24,6 +24,8 @@ export interface Task {
   collapsed?: boolean;
   /** Start-no-earlier-than, set by dragging a task that has predecessors. */
   constraint?: { type: 'SNET'; day: WorkDay };
+  /** Who it's assigned to. Free text, for reading the list; nothing computes from it. */
+  assignee?: string;
 }
 
 export interface Link {

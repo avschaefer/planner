@@ -10,7 +10,7 @@ import { DateField } from './DateField';
 import { dropPlan, INDENT, NAME_X, type DropPlan } from './reorder';
 import { ROW_H, type Row } from './rows';
 
-export type Field = 'name' | 'start' | 'finish' | 'duration' | 'pred';
+export type Field = 'name' | 'start' | 'finish' | 'duration' | 'pred' | 'assignee';
 
 /**
  * Shift / Cmd / Ctrl + click is a selection gesture, not an edit — without this
@@ -33,9 +33,10 @@ export const COLUMNS: Array<{ key: Field | 'code' | 'float' | 'grip'; label: str
   { key: 'duration', label: 'Dur', width: 48 },
   { key: 'float', label: 'Float', width: 54 },
   { key: 'pred', label: 'Predecessors', width: 122 },
+  { key: 'assignee', label: 'Assigned', width: 100 },
 ];
 
-const EDITABLE: Field[] = ['name', 'start', 'finish', 'duration', 'pred'];
+const EDITABLE: Field[] = ['name', 'start', 'finish', 'duration', 'pred', 'assignee'];
 
 interface Props {
   rows: Row[];
@@ -152,6 +153,9 @@ export function TaskTable({ rows, hues, schedule, editing, setEditing, onAdd }: 
         else store.replacePredecessors(taskId, parsed.links);
         break;
       }
+      case 'assignee':
+        store.setAssignee(taskId, raw);
+        break;
     }
   }
 
@@ -178,6 +182,8 @@ export function TaskTable({ rows, hues, schedule, editing, setEditing, onAdd }: 
           doc.links.filter((l) => l.toId === taskId),
           (id) => ids.get(id),
         );
+      case 'assignee':
+        return task.assignee ?? '';
     }
   }
 
@@ -349,6 +355,23 @@ export function TaskTable({ rows, hues, schedule, editing, setEditing, onAdd }: 
                 if (how === 'enter') advance(task.id, 'pred');
                 else if (how === 'tab' || how === 'shift-tab')
                   nextField(task.id, 'pred', how === 'shift-tab');
+                else setEditing(null);
+              }}
+            />
+
+            <EditCell
+              className="assignee"
+              width={100}
+              editable
+              editing={editing?.taskId === task.id && editing.field === 'assignee'}
+              display={task.assignee ?? ''}
+              value={task.assignee ?? ''}
+              onOpen={() => setEditing({ taskId: task.id, field: 'assignee' })}
+              onCommit={(v) => commitField(task.id, 'assignee', v)}
+              onDone={(how) => {
+                if (how === 'enter') advance(task.id, 'assignee');
+                else if (how === 'tab' || how === 'shift-tab')
+                  nextField(task.id, 'assignee', how === 'shift-tab');
                 else setEditing(null);
               }}
             />

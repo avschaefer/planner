@@ -7,6 +7,7 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Added
 
+- **Assigned** column after Predecessors: free text, edited in place, undoable, saved with the schedule. [R-078]
 - Site icon: the three-bar mark in Marga's blue, for tabs, bookmarks and phone home screens (SVG, 32px PNG, 180px touch icon).
 - The MARGA logotype on the account page goes back to the schedules. [R-066]
 - **Deleting an account cancels its subscription** immediately, before the account is removed; if Stripe can't be reached the account is kept. The delete dialog says so. [R-076]
@@ -102,6 +103,7 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Fixed
 
+- Labels set to sit left of their bar were cut off at the chart's left edge; the timeline now starts early enough to show the longest one whole (also in PNG export). [R-057]
 - The subscribe buttons' auto-renewal line no longer pushes the buttons past the account card's edge on wide screens.
 - Sign-up needed a small scroll on short windows. The hero title now also scales with window height, and the form is tighter. [R-061]
 - (Caught before release) A viewer's save failed with a misleading duplicate-key error, and their lock request answered "granted"; both are now refused up front. The interface also briefly mistook a viewer for the owner because a role lookup returned every member's row. [R-068]

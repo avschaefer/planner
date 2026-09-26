@@ -4,7 +4,7 @@ import { primaryTaskId, useStore, ZOOM_STEPS } from '../store/store';
 import { groupHues } from './colors';
 import { Button } from './Button';
 import { exportGanttPng } from './exportPng';
-import { Gantt } from './Gantt';
+import { Gantt, leftLabelReach } from './Gantt';
 import * as Icon from './icons';
 import { SettingsModal } from './Settings';
 import { ShareModal } from './ShareModal';
@@ -24,7 +24,7 @@ export function ScheduleView() {
   const settings = useStore((s) => s.settings);
   const store = useStore();
 
-  const [leftWidth, setLeftWidth] = useState(660);
+  const [leftWidth, setLeftWidth] = useState(760);
   const [editing, setEditing] = useState<Editing | null>(null);
   const [showKeys, setShowKeys] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -41,9 +41,10 @@ export function ScheduleView() {
   // colour each shape by what it is (see .by-type in styles.css).
   const byType = settings.colorMode === 'type';
   const hues = useMemo(() => (byType ? new Map<string, number>() : groupHues(rows)), [rows, byType]);
+  const leftLabels = useMemo(() => leftLabelReach(rows, schedule, settings), [rows, schedule, settings]);
   const tl = useMemo(
-    () => buildTimeline(schedule, pxPerDay, viewportWidth),
-    [schedule, pxPerDay, viewportWidth],
+    () => buildTimeline(schedule, pxPerDay, viewportWidth, leftLabels),
+    [schedule, pxPerDay, viewportWidth, leftLabels],
   );
 
   /* The Gantt pane is the single scroll master; the table body and the timeline

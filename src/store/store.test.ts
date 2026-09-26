@@ -39,6 +39,19 @@ function addActivities(specs: Array<[string, number]>) {
 }
 
 describe('store', () => {
+  it('records an assignee as plain text; blank clears it; undo restores it', () => {
+    addActivities([['A', 5]]);
+    const id = codeId('A');
+    const before = s().schedule!.byId.get(id)!.start;
+    s().setAssignee(id, '  Sam  ');
+    expect(s().doc!.tasks.find((t) => t.id === id)!.assignee).toBe('Sam');
+    expect(s().schedule!.byId.get(id)!.start).toBe(before); // nothing computes from it
+    s().setAssignee(id, '');
+    expect('assignee' in s().doc!.tasks.find((t) => t.id === id)!).toBe(false);
+    s().undo();
+    expect(s().doc!.tasks.find((t) => t.id === id)!.assignee).toBe('Sam');
+  });
+
   it('numbers activities 1, 2, 3 down the outline', () => {
     addActivities([
       ['A', 5],

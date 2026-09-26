@@ -24,16 +24,28 @@ export interface Timeline {
 const PAD_BEFORE = 4;
 const PAD_AFTER = 12;
 
+/** A label drawn left of a bar: the bar's start, and the pixels it needs before it. */
+export interface LeftReach {
+  start: WorkDay;
+  px: number;
+}
+
 export function buildTimeline(
   schedule: ScheduleResult | null,
   pxPerDay: number,
   minWidth: number,
+  leftLabels: readonly LeftReach[] = [],
 ): Timeline {
   const startWork = schedule?.projectStart ?? 0;
   const endWork = Math.max(schedule?.projectEnd ?? startWork, startWork + 20);
   const todayCal = calIndexFromIso(todayIso());
 
-  const origin = Math.min(calIndexFromWorkDay(startWork) - PAD_BEFORE, todayCal - 2);
+  // Start early enough that every left-side label fits, not just the bars:
+  // a long name left of an early bar would otherwise run off the chart.
+  let origin = Math.min(calIndexFromWorkDay(startWork) - PAD_BEFORE, todayCal - 2);
+  for (const l of leftLabels) {
+    origin = Math.min(origin, calIndexFromWorkDay(l.start) - Math.ceil(l.px / pxPerDay));
+  }
   const last = Math.max(calIndexFromWorkDay(endWork) + PAD_AFTER, todayCal + 2);
   const days = Math.max(last - origin, Math.ceil(minWidth / pxPerDay));
 

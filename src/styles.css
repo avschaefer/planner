@@ -430,6 +430,7 @@ input {
   cursor: pointer;
 }
 .td.pred { font-variant-numeric: tabular-nums; }
+.td.assignee { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--dim); }
 
 /* What you type is purple; what the engine works out (dates, float) is grey. */
 .td.dur.editable, .td.pred.editable { color: var(--accent); }
