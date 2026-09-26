@@ -7,20 +7,15 @@
 
 ## Now
 
-- [ ] **Real-card end-to-end run** (owner): subscribe, see the plan appear, open Manage
-      subscription, cancel, see "Access until …". Nothing past Checkout has run in production yet.
-- [ ] **Renewal reminder lead time** (owner, Stripe Dashboard): Settings → Billing → Prevent failed
-      payments → Upcoming renewal events → 15–45 days (30 suggested). The Terms promise a reminder
-      before each yearly renewal; California requires it 15–45 days ahead.
-- [ ] **Supabase → Authentication → URL Configuration** (owner, dashboard only): Site URL
-      `https://marga-planner.vercel.app`; Redirect URLs `https://marga-planner.vercel.app/**` and
-      `http://localhost:5173/**`. Until this is set, confirmation and reset links point at localhost.
-- [ ] **Custom SMTP** (Authentication → Emails → SMTP) before inviting real users. The built-in
-      sender is for testing and allows only a few emails an hour.
-- [ ] Remove `APP_PASSCODE` and `SESSION_SECRET` from Vercel — unused since accounts.
+- [ ] **Custom SMTP** when sign-ups outgrow Supabase's built-in sender (a few emails an hour).
+      Decided 2026-09-25: stay on the built-in sender until limits bite.
+- [ ] **Yearly renewal notice is 7 days, not 15–45** (California ARL). Stripe's reminder is fixed at
+      7 days; closing the gap needs our own email ~30 days out. Accepted for now.
 - [ ] **Plan a real program in it** and see what breaks.
 
 ## Recently completed
+
+**2026-09-25 — ready to share.** Real-card run in production passed: Checkout with the trial carried over, webhook to the account page, Portal, and account deletion cancelled the subscription in Stripe (`cancellation_requested`). Supabase Site URL set; password- and email-change notifications on; Stripe 7-day trial and renewal reminders on.
 
 **2026-09-25 — deletion cancels billing; free accounts (R-076, R-077).** Deleting an account now cancels its Stripe subscription first and keeps the account if Stripe can't be reached; the database function refuses subscribers. Complimentary access (`comp_until`, forever or until a date) is granted from an Admin panel only `ADMIN_EMAIL` sees. Migration 0007 applied; `verify:db` 82/82; 115 unit and 22 browser tests pass; admin grant, comp display and both delete paths walked in a browser against the live database. Also fixed the subscribe row overflowing the account card.
 
