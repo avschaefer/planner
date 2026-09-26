@@ -7,6 +7,8 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Added
 
+- Site icon: the three-bar mark in Marga's blue, for tabs, bookmarks and phone home screens (SVG, 32px PNG, 180px touch icon).
+- The MARGA logotype on the account page goes back to the schedules. [R-066]
 - **Deleting an account cancels its subscription** immediately, before the account is removed; if Stripe can't be reached the account is kept. The delete dialog says so. [R-076]
 - **Free accounts.** The admin (`ADMIN_EMAIL`) grants or revokes complimentary access, forever or until a date, from an Admin section on their account page. Comped accounts see "Complimentary access". Migration `0007_comp_and_safe_delete.sql`. [R-077]
 - **Terms & Privacy** on one public page, `/legal.html`: operated by Andrew Schaefer under Maryland law; free trial, auto-renewal with a reminder before yearly renewals, cancel any time, no refunds for partial periods. No prices on the page, so pricing can change without it. One "Terms & Privacy" link on every page (bottom-left on wide screens), plus links at sign-up and beside the subscribe buttons with the auto-renewal terms; the Stripe Customer Portal links to it too. [R-075]
@@ -69,6 +71,7 @@ requirement IDs refer to [`docs/PRD.md`](docs/PRD.md).
 
 ### Changed
 
+- The delete dialog states, for every account, that any active subscription is terminated immediately on deletion, with no further charges and no refund for the current period. [R-076]
 - `profiles.plan` is now `monthly`, `annual` or empty, written by the webhook; the `'free'` placeholder is gone. The account page's Plan row is replaced by the billing section.
 - `npm run dev` also serves the Vercel functions in `api/`.
 - Account page: one wide two-column card that fits without scrolling, a proper back control, sign-out top right, and a small logotype top-left instead of the hero title. [R-066]

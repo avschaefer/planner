@@ -15,6 +15,8 @@
 
 ## Recently completed
 
+**2026-09-25 — final touches.** Delete dialog carries a formal termination notice for everyone (R-076); account-page logotype returns to schedules; the bar mark is the favicon and touch icon. Supabase redirect URLs set (production and localhost).
+
 **2026-09-25 — ready to share.** Real-card run in production passed: Checkout with the trial carried over, webhook to the account page, Portal, and account deletion cancelled the subscription in Stripe (`cancellation_requested`). Supabase Site URL set; password- and email-change notifications on; Stripe 7-day trial and renewal reminders on.
 
 **2026-09-25 — deletion cancels billing; free accounts (R-076, R-077).** Deleting an account now cancels its Stripe subscription first and keeps the account if Stripe can't be reached; the database function refuses subscribers. Complimentary access (`comp_until`, forever or until a date) is granted from an Admin panel only `ADMIN_EMAIL` sees. Migration 0007 applied; `verify:db` 82/82; 115 unit and 22 browser tests pass; admin grant, comp display and both delete paths walked in a browser against the live database. Also fixed the subscribe row overflowing the account card.

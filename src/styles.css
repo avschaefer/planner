@@ -1070,6 +1070,8 @@ input {
 .auth-error { margin: 0; font-size: 12.5px; color: var(--danger); }
 .auth-note { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--dim); }
 
+.delete-notice { margin-bottom: 16px; }
+
 .auth-fine { margin: 0; font-size: 11.5px; line-height: 1.5; color: var(--faint); }
 .auth-fine a { color: var(--dim); text-underline-offset: 2px; }
 
